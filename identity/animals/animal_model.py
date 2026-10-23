@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from identity.parameters.pond_parameter_model import PondParametersDeliveryModel
-from identity.units.threshold_units.threshold import LevelThreshold, RangeThreshold
+from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold
 
 class AquaticAnimal(ABC):
     label:str = "Not yet determined"

@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-from identity.units.threshold_units.t_levels import LevelType
-from identity.units.threshold_units.threshold_level_model import ThresholdLevelModel
-from identity.units.threshold_units.threshold_level import ThresholdLevelType
-from identity.units.threshold_units.value_range import Range, RangeType
-from ...parameters.pond_parameter_enum import PondParameters
+from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
+from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
+from identity.units.threshold_units.threshold.value_range import Range, RangeType
+from ....parameters.pond_parameter_enum import PondParameters
 
 # Mother Class
 class Threshold(ABC):

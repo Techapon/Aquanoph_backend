@@ -6,8 +6,8 @@ from identity.animals.nile_tilapia.nile_parameter_threshold.pH.nile_pH_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.salinity.nile_salinity_threshold import salinity_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.tempearture.nile_tem_threshold import tem_threshold
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.t_levels import LevelType
-from identity.units.threshold_units.threshold import LevelThreshold, RangeThreshold, Threshold
+from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold, Threshold
 
 class NileTilapiaModel(AquaticAnimal):
     label:str = "Nile Tilapia"

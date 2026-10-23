@@ -1,7 +1,7 @@
 
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.threshold import Threshold
-from identity.units.threshold_units.threshold_level_model import ThresholdLevelModel
+from identity.units.threshold_units.threshold.threshold_model import Threshold
+from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 
 class ParameterModel:
     def __init__(

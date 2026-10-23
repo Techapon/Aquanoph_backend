@@ -1,4 +1,4 @@
-from identity.units.threshold_units.threshold_level import ThresholdLevelType
+from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
 
 
 class ThresholdLevelModel:

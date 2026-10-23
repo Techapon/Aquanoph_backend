@@ -6,9 +6,9 @@ if TYPE_CHECKING:
     from identity.animals.nile_tilapia.nile_model import NileTilapiaModel
 
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.t_levels import LevelType
-from identity.units.threshold_units.threshold import LevelThreshold, Threshold,RangeThreshold
-from identity.units.threshold_units.value_range import Range,RangeType
+from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, Threshold,RangeThreshold
+from identity.units.threshold_units.threshold.value_range import Range,RangeType
 
 def tem_threshold(nile:NileTilapiaModel) -> RangeThreshold:
 
