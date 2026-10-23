@@ -6,8 +6,6 @@ from identity.units.threshold_units.threshold_level import ThresholdLevelType
 from identity.units.threshold_units.value_range import Range, RangeType
 from ...parameters.pond_parameter_enum import PondParameters
 
-
-
 # Mother Class
 class Threshold(ABC):
     def __init__(self,

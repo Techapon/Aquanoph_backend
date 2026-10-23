@@ -5,8 +5,8 @@ from identity.parameters.pond_parameter_model import PondParametersDeliveryModel
 
 # Input value
 
-weight = 800 # g
-density = (800/1000)*5 # kg/m3
+weight = 450 # g
+density = (450/1000)*5 # kg/m3
 
 parameters = PondParametersModel(
     species = NileTilapiaModel(
@@ -22,7 +22,6 @@ parameters = PondParametersModel(
         )
     ),
 )
-
 
 print(f"{parameters.do.identity.label} : ",parameters.do.checkParameterThreshold().level.value , "\n",parameters.do.threshold.getThreshold() , "\n")
 print(f"{parameters.pH.identity.label} : ",parameters.pH.checkParameterThreshold().level.value , "\n",parameters.pH.threshold.getThreshold() , "\n")
