@@ -24,6 +24,6 @@ class EscalationPolicy:
     recurrenceEpisode24H = 2
     EpisodeSeparationMinute = 60
 
-    HightRiskRecoveryHoldMinute = 120
+    ElevatedRecoveryHoldMinute = 120
     CriticalRecoveryHoldMinute = 240
 

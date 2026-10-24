@@ -47,4 +47,4 @@ print(f"{parameters.no2_n.identity.label} : ",parameters.no2_n.getCurrentSeverit
 print(f"{parameters.nh3.identity.label} : ",parameters.nh3.getCurrentSeverityLevel().severityLevel.value , "\n")
 print(f"{parameters.salinity.identity.label} : ",parameters.salinity.getCurrentSeverityLevel().severityLevel.value , "\n")
 
-
+    
