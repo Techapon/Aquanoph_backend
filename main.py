@@ -6,6 +6,7 @@ from identity.parameters.pond_parameter_model import PondParametersDeliveryModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 from identity.units.severity_units.severity_description.severity_desscription_model import SeverityDescriptionModel
+from datetime import datetime
 
 # Input value
 
@@ -16,6 +17,7 @@ analysisHistoryReport: list[AnalysisReportModel] = []
 
 parameters = PondParametersModel(
     analysisHis = analysisHistoryReport,
+    dateTime = datetime(2026,10,24,11,1,50),
     species = NileTilapiaModel(
         weight = weight,
         density = density,
