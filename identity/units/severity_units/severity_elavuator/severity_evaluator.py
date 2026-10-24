@@ -32,51 +32,53 @@ def SeverityEvaluator(
     severityCountMinute:int = policy.stressCountMinute if currentThresholdLevel is ThresholdLevelType.Stress else policy.HightRiskCountMinute
     severityCumIn24Hs:int = policy.stressCumIn24Hs if currentThresholdLevel is ThresholdLevelType.Stress else policy.HightRiskCumIn24Hs
 
-    #rocovery
-    recoveryHoldMinute:int = policy.HightRiskRecoveryHoldMinute if currentThresholdLevel is ThresholdLevelType.HighRisk else policy.CriticalRecoveryHoldMinute
-
     # OPTIMAL CASE
-    if (currentThresholdLevel == ThresholdLevelType.Optimal):
-        for reportIndex in range(len(analysisHis)):
-            focusReport = analysisHis[reportIndex]
-            diffMinute = calDiffMinute(
-                parameterDateTime, # current
-                focusReport.dateTime
+    if currentThresholdLevel == ThresholdLevelType.Optimal:
+
+        lastestSeverity = next(x for x in analysisHis if x.severityStatus != SeverityLevelType.Optimal)
+        lastestOverOptimal = next(x for x in analysisHis if x.thresholdStatus != ThresholdLevelType.Optimal)
+
+        recoveryHoldMinute:int = policy.HightRiskRecoveryHoldMinute if lastestSeverity.severityStatus == SeverityLevelType.ElevatedRisk else policy.CriticalRecoveryHoldMinute
+        diffMinute = calDiffMinute(parameterDateTime,lastestOverOptimal.dateTime)
+
+        if (
+            lastestSeverity.severityStatus == SeverityLevelType.Stress and 
+            lastestOverOptimal.thresholdStatus == ThresholdLevelType.Stress
+            ) or diffMinute >= recoveryHoldMinute:
+            return SeverityModel(
+                severityLevel = SeverityLevelType.Optimal,
+                severityDes = SeverityDescriptionModel(
+                    des = "ปลาอยู่ในระดับที่เหมาะสมแล้ว",
+                    guid = "ดูแลเติม o2 ให้เหมาะสมเสมอ"
+                )
             )
-            match focusReport.thresholdStatus:
-                case ThresholdLevelType.Optimal:
-                    if diffMinute >= recoveryHoldMinute:
-                        return SeverityModel(
-                            severityLevel = SeverityLevelType.Optimal,
-                            severityDes = SeverityDescriptionModel(
-                                des = "ปลาพื้นฟูจากความเคียดแล้ว",
-                                guid = "ดูแลเติม o2 ให้เหมาะสมเสมอ"
-                            )
-                        )
-                case ThresholdLevelType.Stress:
-                    return SeverityModel(
+        else:
+            match lastestSeverity.severityStatus:
+                case SeverityLevelType.ElevatedRisk:
+                     return SeverityModel(
                         severityLevel = SeverityLevelType.Stress,
                         severityDes = SeverityDescriptionModel(
-                            des = f"ยังมีความเครียดจาก DO ในระดับ 'เครียด' ที่ตกไม่เมื่อ เวลาประมาณ {focusReport.dateTime}",
+                            des = f"ยังมีความเครียดจาก DO ในระดับ 'เสี่ยงสูง' ที่ตกไม่เมื่อ เวลาประมาณ {lastestOverOptimal.dateTime} น.",
                             guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ"
                         )
                     )
-                case ThresholdLevelType.HighRisk:
+                case SeverityLevelType.Critical:
                     return SeverityModel(
                         severityLevel = SeverityLevelType.Stress,
                         severityDes = SeverityDescriptionModel(
-                            des = f"ยังมีความเครียดจาก DO ในระดับ 'เสี่ยงสูง' ที่ตกไม่เมื่อ เวลาประมาณ {focusReport.dateTime}",
+                            des = f"ยังมีความเครียดจาก DO ในระดับ 'อันตราย' ที่ตกไม่เมื่อ เวลาประมาณ {lastestOverOptimal.dateTime} น.",
                             guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ"
                         )
                     )
-                case ThresholdLevelType.Critical:
-                    return SeverityModel(
-                        severityLevel = SeverityLevelType.Stress,
-                        severityDes = SeverityDescriptionModel(
-                            des = f"ยังมีความเครียดจาก DO ในระดับ 'อันตราย' ที่ตกไม่เมื่อ เวลาประมาณ {focusReport.dateTime}",
-                            guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ"
-                        )
-                    )
+             
+    # STRESS CASE (Continous)
+    # if currentThresholdLevel == ThresholdLevelType.Stress:
+    #     for reportIndex in range(len(analysisHis)):
+    #         focusReport = analysisHis[reportIndex]
+    #         diffMinute = calDiffMinute(
+    #             parameterDateTime,
+    #             focusReport.dateTime
+    #         )
             
 
     return SeverityModel(
