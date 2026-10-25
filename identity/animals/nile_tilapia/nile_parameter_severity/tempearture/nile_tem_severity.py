@@ -1,87 +1,109 @@
-from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
-from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_elavuator.severity_escalation_policy import (
+    EscalationPolicy,
+    RangeEscalationPolicy,
+)
+from identity.units.severity_units.severity_description.severity_des_set_model import (
+    RangeSeverityDesSet,
+    SeverityDesSetModel,
+)
 from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 
-def temperature_EscalationPolicy() -> EscalationPolicy:
-    return EscalationPolicy(
-        
+
+def temperature_EscalationPolicy() -> RangeEscalationPolicy:
+    return RangeEscalationPolicy(
+        low = EscalationPolicy(),
+        high = EscalationPolicy(),
     )
 
-def temperature_SeverityDesSet() -> SeverityDesSetModel:
+
+def _temperatureSideSet(*, label: str, detail: str, care: str) -> SeverityDesSetModel:
+    """
+    สร้างชุดข้อความ 1 ฝั่ง ใช้ factory เพื่อไม่ต้องเขียนซ้ำ 11 รายการต่อฝั่ง
+    - label  : วลีที่ evaluator ใช้ต่อท้ายข้อความเชิงเวลา เช่น "อุณหภูมิต่ำ"
+    - detail : ผลต่อปลาของฝั่งนั้น
+    - care   : คำแนะนำเฉพาะฝั่ง
+    ข้อความทั้งหมดเป็นร่าง ให้ผู้เชี่ยวชาญตรวจก่อนใช้งานจริง
+    """
     return SeverityDesSetModel(
-        # Optimal
+        abnormalLabel = label,
+
+        # Optimal (ควรเหมือนกันทั้งสองฝั่ง เพราะ RangeSeverityDesSet ใช้ของฝั่ง low)
         pureOptimal = SeverityDescriptionModel(
-            des = "ปลาดูในระดับ DO ในเหมาะสม",
-            detail= "ดีต่อการเจริญเติบโตมาก",
-            guid = "ระวังและดูแลตามปกติ",
-            append= None
+            des = "อุณหภูมิน้ำอยู่ในช่วงเหมาะสม",
+            detail = "เอื้อต่อการกินอาหารและการเจริญเติบโต",
+            guid = "ดูแลตามปกติ",
         ),
-        needRocoveryEleveted =  SeverityDescriptionModel(
-            des = "ปลาค้องการการพักฟื้น จาก DO ตํ่าในระดับ เครียดสูง ",
-            detail= "เสี่ยงอันตรายขึ้นหากเกิดเหตุการณ์ขึ้นอีก ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดี อย่างเคร่งครัด",
-            append= None
+        needRocoveryEleveted = SeverityDescriptionModel(
+            des = f"ปลากำลังฟื้นตัวจากเหตุการณ์{label}ระดับเสี่ยงสูง",
+            detail = "ยังเสี่ยงหากเกิดเหตุการณ์ซ้ำในช่วงนี้",
+            guid = f"รักษาอุณหภูมิให้อยู่ในช่วงเหมาะสมต่อเนื่อง {care}",
         ),
         needRocoveryCritical = SeverityDescriptionModel(
-            des = "ปลาค้องการการพักฟื้น จาก DO ตํ่าในระดับ เสี่ยงตาย ",
-            detail= "เสี่ยงอันตรายขึ้นหากเกิดเหตุการณ์ขึ้นอีก ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดี อย่างเคร่งครัด",
-            append= None
+            des = f"ปลากำลังฟื้นตัวจากเหตุการณ์{label}ระดับวิกฤต",
+            detail = "ยังเสี่ยงสูงมากหากเกิดเหตุการณ์ซ้ำในช่วงนี้",
+            guid = f"รักษาอุณหภูมิให้อยู่ในช่วงเหมาะสมต่อเนื่องอย่างเคร่งครัด {care}",
         ),
 
         # Stress
         pureStress = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดเล็กน้อย",
-            detail= "อาจเป็นส่งผลเสียต่อสุขภาพหากอยู่นานกว่านี้",
-            guid = "ระวังและดูแลให้ DO กลับมาอยู่ในระดับที่เหมาะสม",
-            append= None
+            des = f"{label}กว่าช่วงเหมาะสมเล็กน้อย ปลาเริ่มเครียด",
+            detail = detail,
+            guid = care,
         ),
         continuousStressExceeded = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดสูง",
-            detail= "เสี่ยงส่งผลต่อสุขภาพระยะยาวหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน",
-            append= None
+            des = f"{label}ต่อเนื่องนาน ปลาเครียดสูง",
+            detail = detail,
+            guid = f"ควรเริ่มแก้ไขโดยเร็ว {care}",
         ),
         cumStressExceeded = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดสูง",
-            detail= "เสี่ยงส่งผลต่อสุขภาพระยะยาวหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน",
-            append= None
+            des = f"{label}สะสมหลายช่วงใน 24 ชม. ปลาเครียดสูง",
+            detail = detail,
+            guid = f"ควรเริ่มแก้ไขโดยเร็ว {care}",
         ),
 
         # High Risk
         pureHighRisk = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดสูง",
-            detail= "อาจเสี่ยงส่งผลเสียต่อปลาอย่างร้ายแรงหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วนที่สุด",
-            append= None
+            des = f"{label}ถึงระดับเสี่ยงสูง",
+            detail = detail,
+            guid = f"ควรดำเนินการทันที {care}",
         ),
         continuousHighRiskExceeded = SeverityDescriptionModel(
-            des = "ปลากำลังเสี่ยงตาย",
-            detail= "อาจเสี่ยงตายหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน!!!",
-            append= None
+            des = f"{label}ระดับเสี่ยงสูงต่อเนื่องนาน เสี่ยงต่อชีวิตปลา",
+            detail = detail,
+            guid = f"ดำเนินการทันที {care}",
         ),
         cumHighRiskExceeded = SeverityDescriptionModel(
-            des = "ปลากำลังเสี่ยงตาย",
-            detail= "อาจเสี่ยงตายหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน!!!",
-            append= None
+            des = f"{label}ระดับเสี่ยงสูงสะสมใน 24 ชม. เสี่ยงต่อชีวิตปลา",
+            detail = detail,
+            guid = f"ดำเนินการทันที {care}",
         ),
 
         # Critical
         pureCritical = SeverityDescriptionModel(
-            des = "ปลากำลังเสี่ยงตาย",
-            detail= "อาจเสี่ยงตายหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน!!!",
-            append= None
+            des = f"{label}ถึงระดับวิกฤต เสี่ยงต่อชีวิตปลา",
+            detail = detail,
+            guid = f"ดำเนินการทันที {care}",
         ),
 
         # Episode
         episodeExceeded = SeverityDescriptionModel(
-            des = "ปลากำลังเสี่ยงตาย",
-            detail= "อาจเสี่ยงตายหากอยู่นานกว่านี้ ปลาอาจ...",
-            guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน!!!",
-            append= None
+            des = f"{label}ระดับเสี่ยงสูงเกิดซ้ำหลายครั้ง เสี่ยงต่อชีวิตปลา",
+            detail = detail,
+            guid = f"ดำเนินการทันทีและหาสาเหตุที่ทำให้เกิดซ้ำ {care}",
+        ),
+    )
+
+
+def temperature_SeverityDesSet() -> RangeSeverityDesSet:
+    return RangeSeverityDesSet(
+        low = _temperatureSideSet(
+            label = "อุณหภูมิต่ำ",
+            detail = "น้ำเย็นกว่าช่วงเหมาะสม ปลากินอาหารลดลง",
+            care = "ควรลดการให้อาหารและเฝ้าระวัง DO",
+        ),
+        high = _temperatureSideSet(
+            label = "อุณหภูมิสูง",
+            detail = "น้ำร้อนกว่าช่วงเหมาะสม ปลาใช้ออกซิเจนมากขึ้น และ NH₃ มีสัดส่วนที่เป็นพิษมากขึ้น",
+            care = "ควรเฝ้าระวัง DO และ NH₃",
         ),
     )

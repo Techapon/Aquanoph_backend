@@ -6,7 +6,7 @@ from identity.units.severity_units.severity_elavuator.severity_evaluator import 
 from identity.units.threshold_units.threshold.threshold_model import Threshold
 from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
-from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_description.severity_des_set_model import SeverityDesSetModel
 
 class ParameterModel:
     def __init__(

@@ -1,8 +1,11 @@
+import math
 from abc import ABC, abstractmethod
+from typing import NamedTuple
 
 from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
 from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
+from identity.units.threshold_units.threshold_level.threshold_direction import ThresholdDirection
 from identity.units.threshold_units.threshold.value_range import Range, RangeType
 from ....parameters.pond_parameter_enum import PondParameters
 
@@ -23,12 +26,29 @@ class Threshold(ABC):
         self.critical = critical
 
     @abstractmethod
-    def getThreshold(self):
+    def getThreshold(self) -> str:
         pass
 
     @abstractmethod
     def checkThreshold(self,*,parameterValueNow:float) -> ThresholdLevelModel:
         pass
+
+class _RangeBounds(NamedTuple):
+    """ขอบของแต่ละโซนที่ตรวจแล้วว่าเป็นตัวเลขจริง (ไม่ใช่ RangeType)"""
+    optimalMin: float
+    optimalMax: float
+    stressMin: float
+    stressMax: float
+    highRiskMin: float
+    highRiskMax: float
+
+
+def _asNumber(label: str, name: str, value: float | RangeType) -> float:
+    # isinstance ตรงนี้ทำให้ type checker รู้ว่าค่าที่คืนเป็น float
+    if isinstance(value, RangeType):
+        raise ValueError(f"{label}: {name} ต้องระบุเป็นตัวเลข ไม่ใช่ {value}")
+    return float(value)
+
 
 # Child Class
 class RangeThreshold(Threshold):
@@ -47,59 +67,69 @@ class RangeThreshold(Threshold):
                  critical: Range
                 ):
         super().__init__(parameter=parameter, optimal=optimal, stress=stress,highRisk=highRisk, critical=critical)
+        self._bounds: _RangeBounds = self._validate()
 
-    def getThreshold(self):
+    def _validate(self) -> _RangeBounds:
+        # optimal / stress / highRisk ต้องเป็นตัวเลขจริงทั้งสองขอบ
+        # (critical คือ "ทุกอย่างที่เลย highRisk ออกไป" จึงใช้ noMin/noMax ได้)
+        lb = self.parameter.label
+        b = _RangeBounds(
+            optimalMin=_asNumber(lb, "optimal.min", self.optimal.min),
+            optimalMax=_asNumber(lb, "optimal.max", self.optimal.max),
+            stressMin=_asNumber(lb, "stress.min", self.stress.min),
+            stressMax=_asNumber(lb, "stress.max", self.stress.max),
+            highRiskMin=_asNumber(lb, "highRisk.min", self.highRisk.min),
+            highRiskMax=_asNumber(lb, "highRisk.max", self.highRisk.max),
+        )
+        # low_critical < low_high_risk < low_stress < optimal_low <= optimal_high
+        #   < high_stress < high_high_risk < high_critical
+        if not (b.highRiskMin < b.stressMin < b.optimalMin <= b.optimalMax < b.stressMax < b.highRiskMax):
+            raise ValueError(
+                f"{lb}: ลำดับ threshold ไม่ถูกต้อง "
+                f"ต้องเป็น highRisk.min < stress.min < optimal.min <= optimal.max < stress.max < highRisk.max"
+            )
+        return b
+
+    def getThreshold(self) -> str:
         return (
             f"{self.parameter.label} --> "
             f"optimal : {self.optimal.min} - {self.optimal.max}, "
             f"stress : {self.stress.min} - {self.optimal.min} , {self.optimal.max} - {self.stress.max}, "
-            f"hight risk : {self.highRisk.min} - {self.stress.min} , {self.stress.max} - {self.highRisk.max} "
-            f"critical : {self.critical.min} - {self.highRisk.min} , {self.highRisk.max} - {self.critical.max} "
+            f"high risk : {self.highRisk.min} - {self.stress.min} , {self.stress.max} - {self.highRisk.max} "
+            f"critical : < {self.highRisk.min} , > {self.highRisk.max} "
         )
 
     def checkThreshold(self,*,parameterValueNow:float) -> ThresholdLevelModel:
-
-        level:ThresholdLevelType
-        
         cv = parameterValueNow # current value
-        optimal = self.optimal
-        stress = self.stress
-        highRisk = self.highRisk
-        critical = self.critical
+        if math.isnan(cv):
+            raise ValueError(f"{self.parameter.label}: ค่าที่อ่านได้เป็น NaN")
 
-        if (
-            # Optimal Type check
-            not isinstance(optimal.min,RangeType) and 
-            not isinstance(optimal.max,RangeType) and
-            # Stress Type check
-            not isinstance(stress.min,RangeType) and 
-            not isinstance(stress.max,RangeType) and
-            # Hight Type Risk check
-            not isinstance(highRisk.min,RangeType) and 
-            not isinstance(highRisk.max,RangeType)
-        ):
-            # Optimal
-            if cv >= optimal.min and cv <= optimal.max :
-                level = ThresholdLevelType.Optimal
-            # Stress
-            elif cv >= stress.min and cv < optimal.min :
+        b = self._bounds
+
+        # Optimal (รวมขอบทั้งสองข้าง) -> ไม่มี direction
+        if b.optimalMin <= cv <= b.optimalMax:
+            return ThresholdLevelModel(level=ThresholdLevelType.Optimal)
+
+        # ต่ำกว่า optimal band
+        if cv < b.optimalMin:
+            direction = ThresholdDirection.Low
+            if cv >= b.stressMin:
                 level = ThresholdLevelType.Stress
-            elif cv <= stress.max and cv > optimal.max :
+            elif cv >= b.highRiskMin:
+                level = ThresholdLevelType.HighRisk
+            else:
+                level = ThresholdLevelType.Critical
+        # สูงกว่า optimal band
+        else:
+            direction = ThresholdDirection.High
+            if cv <= b.stressMax:
                 level = ThresholdLevelType.Stress
-            # Hight Risk
-            elif cv >= highRisk.min and cv < stress.min :
+            elif cv <= b.highRiskMax:
                 level = ThresholdLevelType.HighRisk
-            elif cv <= highRisk.max and cv > stress.max :
-                level = ThresholdLevelType.HighRisk
-            # Critical
-            elif cv > highRisk.max:
+            else:
                 level = ThresholdLevelType.Critical
-            elif cv < highRisk.min:
-                level = ThresholdLevelType.Critical
-            
-        return ThresholdLevelModel(
-            level = level
-        )
+
+        return ThresholdLevelModel(level=level, direction=direction)
 
 class LevelThreshold(Threshold):
     # Narrow the union types from Threshold for level-specific formatting.
@@ -120,23 +150,23 @@ class LevelThreshold(Threshold):
         self.levelType = levelType
         super().__init__(parameter=parameter, optimal=optimal, stress=stress,highRisk=highRisk, critical=critical)
 
-    def getThreshold(self):
+    def getThreshold(self) -> str:
         match self.levelType:
             case LevelType.eqaMoreThan:
                 return (
                     f"{self.parameter.label} --> "
                     f"optimal : >= {self.optimal}, "
                     f"stress : < {self.optimal} and >= {self.stress}, "
-                    f"hight risk : < {self.stress} and >= {self.highRisk}, "
-                    f"critical : < {self.highRisk} and > {self.critical}"
+                    f"high risk : < {self.stress} and >= {self.highRisk}, "
+                    f"critical : < {self.highRisk}"
                 )
             case LevelType.eqaLessThan:
                 return (
                     f"{self.parameter.label} --> "
                     f"optimal : <= {self.optimal}, "
-                    f"warn : > {self.optimal} and <= {self.stress}, "
-                    f"hight risk : > {self.stress} and <= {self.highRisk}, "
-                    f"critical : > {self.stress} and < {self.critical}"
+                    f"stress : > {self.optimal} and <= {self.stress}, "
+                    f"high risk : > {self.stress} and <= {self.highRisk}, "
+                    f"critical : > {self.highRisk}"
                 )
 
     def checkThreshold(self,*,parameterValueNow:float) -> ThresholdLevelModel:
@@ -147,7 +177,6 @@ class LevelThreshold(Threshold):
         optimal = self.optimal
         stress = self.stress
         highRisk = self.highRisk
-        critical = self.critical
 
         match self.levelType:
             case LevelType.eqaMoreThan:
@@ -170,6 +199,8 @@ class LevelThreshold(Threshold):
                 else : 
                     level = ThresholdLevelType.Critical
 
-        return ThresholdLevelModel(
-            level = level
-        )
+            case _:
+                raise ValueError(f"ไม่รู้จัก levelType: {self.levelType}")
+
+        # Level parameter ทางเดียว -> direction = None เสมอ
+        return ThresholdLevelModel(level = level)

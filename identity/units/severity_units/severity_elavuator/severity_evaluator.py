@@ -1,6 +1,6 @@
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
-from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_description.severity_des_set_model import SeverityDesSetModel
 from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 from identity.units.severity_units.severity_elavuator.severity_helper import ZONE_BY_LEVEL, buildTimeline, calZoneMetrics,countEpisodes
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType

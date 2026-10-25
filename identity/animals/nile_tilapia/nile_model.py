@@ -15,7 +15,13 @@ from identity.parameters.pond_parameter_enum import PondParameters
 from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
 from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold, Threshold
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
-from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_description.severity_des_set_model import SeverityDesSetModel
+from identity.units.severity_units.severity_elavuator.severity_escalation_policy import (
+    EscalationPolicy, RangeEscalationPolicy,
+)
+from identity.units.severity_units.severity_description.severity_des_set_model import (
+    SeverityDesSetModel, RangeSeverityDesSet,
+)
 
 class NileTilapiaModel(AquaticAnimal):
     label:str = "Nile Tilapia"
@@ -57,11 +63,11 @@ class NileTilapiaModel(AquaticAnimal):
         return DO_EscalationPolicy()
 
     # pH
-    def pHEscalationPolicy(self) -> EscalationPolicy:
+    def pHEscalationPolicy(self) -> RangeEscalationPolicy:
         return pH_EscalationPolicy()
     
     # Temerapure
-    def temEscalationPolicy(self) -> EscalationPolicy:
+    def temEscalationPolicy(self) -> RangeEscalationPolicy:
         return temperature_EscalationPolicy()
 
     # NH3
@@ -83,10 +89,10 @@ class NileTilapiaModel(AquaticAnimal):
     def DOSeverityDesSet(self) -> SeverityDesSetModel:
         return DO_SeverityDesSet()
 
-    def pHSeverityDesSet(self) -> SeverityDesSetModel:
+    def pHSeverityDesSet(self) -> RangeSeverityDesSet:
         return pH_SeverityDesSet()
 
-    def temSeverityDesSet(self) -> SeverityDesSetModel:
+    def temSeverityDesSet(self) -> RangeSeverityDesSet:
         return temperature_SeverityDesSet()
 
     def NH3SeverityDesSet(self) -> SeverityDesSetModel:

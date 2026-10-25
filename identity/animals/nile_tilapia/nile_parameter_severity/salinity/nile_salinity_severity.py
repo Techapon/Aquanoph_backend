@@ -1,5 +1,5 @@
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
-from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_description.severity_des_set_model import SeverityDesSetModel
 from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 
 def salinity_EscalationPolicy() -> EscalationPolicy:
