@@ -4,11 +4,13 @@ from identity.parameters.pond_parameter_enum import PondParameters
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
+from identity.units.threshold_units.threshold_level.threshold_direction import ThresholdDirection
 
 class AnalysisReportModel:
     dateTime : datetime
     parameter : PondParameters
     thresholdStatus : ThresholdLevelType
+    thresholdDirection : ThresholdDirection | None
     severityStatus : SeverityLevelType
     description : str
     guidance : str
@@ -19,11 +21,13 @@ class AnalysisReportModel:
         dateTime : datetime,
         parameter : PondParameters,
         thresholdStatus : ThresholdLevelType,
-        severity : SeverityModel
+        severity : SeverityModel,
+        thresholdDirection : ThresholdDirection | None = None
     ):
         self.dateTime = dateTime
         self.parameter = parameter
         self.thresholdStatus = thresholdStatus
+        self.thresholdDirection = thresholdDirection
         self.severityStatus = severity.severityLevel
         self.description = severity.severityDescription.description
         self.guidance = severity.severityDescription.guidance
