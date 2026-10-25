@@ -6,6 +6,7 @@ from identity.units.severity_units.severity_elavuator.severity_evaluator import 
 from identity.units.threshold_units.threshold.threshold_model import Threshold
 from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
+from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
 
 class ParameterModel:
     def __init__(
@@ -13,17 +14,19 @@ class ParameterModel:
             *,
             identity: PondParameters,
             valueNow: float,
+            dateTime: datetime,
             threshold: Threshold,
             escalationPolicy: EscalationPolicy,
+            severityDesSetModel: SeverityDesSetModel,
             analysisHis: list[AnalysisReportModel],
-            dateTime: datetime
         ):
         self.identity = identity
         self.valueNow = valueNow
+        self.dateTime = dateTime
         self.threshold = threshold
         self.escalationPolicy = escalationPolicy
+        self.severityDesSetModel = severityDesSetModel
         self.analysisHis = analysisHis
-        self.dateTime = dateTime
 
     def checkParameterThreshold(self) -> ThresholdLevelModel:
         return self.threshold.checkThreshold(parameterValueNow = self.valueNow)
@@ -33,5 +36,6 @@ class ParameterModel:
             currentThresholdLevelModel = self.checkParameterThreshold(),
             analysisHis = self.analysisHis,
             policy = self.escalationPolicy,
-            parameterDateTime = self.dateTime
+            parameterDateTime = self.dateTime,
+            descriptionSet = self.severityDesSetModel
         )

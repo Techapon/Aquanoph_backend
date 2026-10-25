@@ -1,4 +1,4 @@
-from identity.units.severity_units.severity_description.severity_desscription_model import SeverityDescriptionModel
+from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 
 

@@ -1,6 +1,7 @@
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
-from identity.units.severity_units.severity_description.severity_desscription_model import SeverityDescriptionModel
+from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
+from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 from identity.units.severity_units.severity_elavuator.severity_helper import ZONE_BY_LEVEL, buildTimeline, calZoneMetrics,countEpisodes
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
@@ -8,13 +9,15 @@ from identity.units.threshold_units.threshold_level.threshold_level_model import
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
 from services.dif_minute import calDiffMinute
 from datetime import datetime
+from services.minute_to_hours import MinuteToHours
 
 def SeverityEvaluator(
     *,
     currentThresholdLevelModel :ThresholdLevelModel,
     parameterDateTime:datetime,
     analysisHis: list[AnalysisReportModel],
-    policy : EscalationPolicy
+    policy: EscalationPolicy,
+    descriptionSet: SeverityDesSetModel
 ) -> SeverityModel:    
     analysisHis.sort(key  = lambda report:report.dateTime,reverse=True)
     currentThresholdLevel:ThresholdLevelType = currentThresholdLevelModel.level
@@ -23,10 +26,7 @@ def SeverityEvaluator(
     if (currentThresholdLevel == ThresholdLevelType.Critical):
         return SeverityModel(
                 severityLevel = SeverityLevelType.Critical,
-                severityDes = SeverityDescriptionModel(
-                    des = "เสี่ยงตายนใเวลาไม่นาน",
-                    guid = "เติม O2 ทันทีเพื่อรักษาระดับที่เหมาะสม"
-                )
+                severityDes = descriptionSet.pureCritical
             )
 
     # OPTIMAL CASE
@@ -35,10 +35,7 @@ def SeverityEvaluator(
         NEEDRECOVERY = (SeverityLevelType.ElevatedRisk, SeverityLevelType.Critical)
         optimalResult = SeverityModel(
             severityLevel = SeverityLevelType.Optimal,
-            severityDes = SeverityDescriptionModel(
-                des = "ปลาอยู่ในระดับที่เหมาะสมแล้ว",
-                guid = "ดูแลเติม o2 ให้เหมาะสมเสมอ"
-            )
+            severityDes = descriptionSet.pureOptimal
         )
         
         lastestSeverity = next((x for x in analysisHis if x.severityStatus != SeverityLevelType.Optimal),None)
@@ -69,20 +66,16 @@ def SeverityEvaluator(
         else:
             match lastestOverStressSeverity.severityStatus:
                 case SeverityLevelType.ElevatedRisk:
-                     return SeverityModel(
-                        severityLevel = SeverityLevelType.Stress,
-                        severityDes = SeverityDescriptionModel(
-                            des = f"ยังมีความเครียดจาก DO ในระดับ 'เสี่ยงสูง' ที่ตกไม่เมื่อ เวลาประมาณ {lastestOverStressSeverity.dateTime} น.",
-                            guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ"
-                        )
-                    )
-                case SeverityLevelType.Critical:
+                    descriptionSet.needRocoveryEleveted.appendDes = f"เกิดเวลาประมาณ {lastestOverStressSeverity.dateTime} เหลืออีก {MinuteToHours(recoveryHoldMinute-diffMinute)} ชม."
                     return SeverityModel(
                         severityLevel = SeverityLevelType.Stress,
-                        severityDes = SeverityDescriptionModel(
-                            des = f"ยังมีความเครียดจาก DO ในระดับ 'อันตราย' ที่ตกไม่เมื่อ เวลาประมาณ {lastestOverStressSeverity.dateTime} น.",
-                            guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ"
-                        )
+                        severityDes = descriptionSet.needRocoveryCritical
+                    )
+                case SeverityLevelType.Critical:
+                    descriptionSet.needRocoveryCritical.appendDes = f"เกิดเวลาประมาณ {lastestOverStressSeverity.dateTime} เหลืออีก {MinuteToHours(recoveryHoldMinute-diffMinute)} ชม."
+                    return SeverityModel(
+                        severityLevel = SeverityLevelType.Stress,
+                        severityDes = descriptionSet.needRocoveryCritical
                     )
                 case _:
                     return optimalResult
@@ -107,63 +100,49 @@ def SeverityEvaluator(
     # STRESS CASE
     if currentThresholdLevel == ThresholdLevelType.Stress:
         if isContinuousExceeded :
+            descriptionSet.continuousStressExceeded.appendDes = f"ตํ่าต่อเนื่องเกิน {MinuteToHours(severityCountMinute)} ชม. แล้ว ปัจจุบัน {MinuteToHours(metrics.continuousMinute/60)} ชม."
             return SeverityModel(
                 severityLevel = SeverityLevelType.ElevatedRisk,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ตํ่าในระดับ 'เครียด' มาเกิน {severityCountMinute/60} แล้ว ({metrics.continuousMinute/60}ชม.) ปลาเครียดมากกกก",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็ว"
-                )
+                severityDes = descriptionSet.continuousStressExceeded
             )       
         elif isCumExceeded:
+            descriptionSet.cumStressExceeded.appendDes = f"สะสมเกิด {MinuteToHours(severityCumIn24Hs)}ชม.ใน 24 ชม.แล้ว"
             return SeverityModel(
                 severityLevel = SeverityLevelType.ElevatedRisk,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ต่ำสะสมรวม {severityCumIn24Hs/60} ชม. ใน 24 ชม. ปลาเครียดมากกกก",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็ว"
-                )
+                severityDes = descriptionSet.cumStressExceeded
             )
         else :
+            descriptionSet.pureStress.appendDes = f"หากต่อเนื่องจนครบ {MinuteToHours(severityCountMinute)} ชม. จะอัตรายขึ้น"
             return SeverityModel(
                 severityLevel = SeverityLevelType.Stress,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ต่ำกว่าระดับที่เหมาะสม ตอนนี้ปลาอาจ'เครียดน้อย-ปานกลาง' เริ่มเกยหัว ",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอ ก่อนจะสายเกินไป"
-                )
+                severityDes = descriptionSet.pureStress
             ) 
 
     # HIGH RISK CASE
     if currentThresholdLevel == ThresholdLevelType.HighRisk:
         if isContinuousExceeded :
+            descriptionSet.continuousHighRiskExceeded.appendDes = f"ตํ่าต่อเนื่องเกิน {MinuteToHours(severityCountMinute)} ชม. แล้ว ปัจจุบัน {MinuteToHours(metrics.continuousMinute/60)} ชม."
             return SeverityModel(
                 severityLevel = SeverityLevelType.Critical,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ตํ่าในระดับ 'เครียด' มาเกิน {severityCountMinute/60} แล้ว ({metrics.continuousMinute/60}ชม.) ปลาเสี่ยงตาย",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็วที่สุดดด"
-                )
+                severityDes = descriptionSet.continuousHighRiskExceeded
             )           
         elif isCumExceeded:
+            descriptionSet.cumHighRiskExceeded.appendDes = f"สะสมเกิด {MinuteToHours(severityCumIn24Hs)}ชม.ใน 24 ชม.แล้ว"
             return SeverityModel(
                 severityLevel = SeverityLevelType.Critical,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ต่ำสะสมรวม {severityCumIn24Hs/60} ชม. ใน 24 ชม. ปลาเสี่ยงตาย",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็วที่สุดดด"
-                )
+                severityDes = descriptionSet.cumHighRiskExceeded
             )
         elif isEpisodeExceeded:
+            descriptionSet.episodeExceeded.appendDes = f"เกิดซํ้าเกิน {policy.recurrenceEpisode24H} ครั้ง ใน 24 ชม.แล้ว ปัจจุบันครั้งที่ {episodeCount}"
             return SeverityModel(
                 severityLevel = SeverityLevelType.Critical,
-                severityDes = SeverityDescriptionModel(
-                    des = f"เกิดเหตุการณ์ DO ต่ำรุนแรงแล้ว {episodeCount} ครั้งใน 24 ชม.",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็วที่สุดดด"
-                )
+                severityDes = descriptionSet.episodeExceeded
             )
         else :
+            descriptionSet.pureHighRisk.appendDes = f"หากต่อเนื่องจนครบ {MinuteToHours(severityCountMinute)} ชม. จะอัตรายขึ้นมากกว่าเดิม"
             return SeverityModel(
                 severityLevel = SeverityLevelType.ElevatedRisk,
-                severityDes = SeverityDescriptionModel(
-                    des = f"DO ต่ำกว่าระดับที่เหมาะสม ตอนนี้ปลาอาจ'เครียดน้อย-สูง' เริ่มเกยหัว ",
-                    guid = "เฝ้าระวังดูแลเติม o2 ให้เหมาะสมเสมอโดยเร็วที่สุดดด"
-                )
+                severityDes = descriptionSet.pureHighRisk
             )
 
     

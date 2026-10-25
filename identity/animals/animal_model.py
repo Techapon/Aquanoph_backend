@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
 from identity.parameters.pond_parameter_model import PondParametersDeliveryModel
 from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold
+from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
 
 class AquaticAnimal(ABC):
     label:str = "Not yet determined"
@@ -67,4 +68,29 @@ class AquaticAnimal(ABC):
 
     @abstractmethod
     def salinityEscalationPolicy(self) -> EscalationPolicy:
+        pass
+
+    # Severity Description Sets
+    @abstractmethod
+    def DOSeverityDesSet(self) -> SeverityDesSetModel:
+        pass
+
+    @abstractmethod
+    def pHSeverityDesSet(self) -> SeverityDesSetModel:
+        pass
+
+    @abstractmethod
+    def temSeverityDesSet(self) -> SeverityDesSetModel:
+        pass
+
+    @abstractmethod
+    def NH3SeverityDesSet(self) -> SeverityDesSetModel:
+        pass
+
+    @abstractmethod
+    def NO2_2SeverityDesSet(self) -> SeverityDesSetModel:
+        pass
+
+    @abstractmethod
+    def salinitySeverityDesSet(self) -> SeverityDesSetModel:
         pass

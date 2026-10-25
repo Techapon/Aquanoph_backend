@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from identity.parameters.pond_parameter_model import PondParametersDeliveryModel
 
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
 from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, Threshold
 
 def NO2_N_threshold(nile:NileTilapiaModel) -> LevelThreshold:

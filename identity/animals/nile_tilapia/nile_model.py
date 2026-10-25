@@ -1,10 +1,10 @@
 from identity.animals.animal_model import AquaticAnimal
-from identity.animals.nile_tilapia.nile_parameter_severity.DO.nile_DO_severity import DO_EscalationPolicy
-from identity.animals.nile_tilapia.nile_parameter_severity.NH3.nile_NH3_severity import NH3_EscalationPolicy
-from identity.animals.nile_tilapia.nile_parameter_severity.NO2_N.nile_NO2_N_severity import NO2_N_EscalationPolicy
-from identity.animals.nile_tilapia.nile_parameter_severity.pH.nile_pH_severity import pH_EscalationPolicy
-from identity.animals.nile_tilapia.nile_parameter_severity.salinity.nile_salinity_severity import salinity_EscalationPolicy
-from identity.animals.nile_tilapia.nile_parameter_severity.tempearture.nile_tem_severity import temperature_EscalationPolicy
+from identity.animals.nile_tilapia.nile_parameter_severity.DO.nile_DO_severity import DO_EscalationPolicy, DO_SeverityDesSet
+from identity.animals.nile_tilapia.nile_parameter_severity.NH3.nile_NH3_severity import NH3_EscalationPolicy, NH3_SeverityDesSet
+from identity.animals.nile_tilapia.nile_parameter_severity.NO2_N.nile_NO2_N_severity import NO2_N_EscalationPolicy, NO2_N_SeverityDesSet
+from identity.animals.nile_tilapia.nile_parameter_severity.pH.nile_pH_severity import pH_EscalationPolicy, pH_SeverityDesSet
+from identity.animals.nile_tilapia.nile_parameter_severity.salinity.nile_salinity_severity import salinity_EscalationPolicy, salinity_SeverityDesSet
+from identity.animals.nile_tilapia.nile_parameter_severity.tempearture.nile_tem_severity import temperature_EscalationPolicy, temperature_SeverityDesSet
 from identity.animals.nile_tilapia.nile_parameter_threshold.DO.nile_DO_threshold import DO_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.NO2_N.nile_NO2_N_threshold import NO2_N_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.NH3.nile_NH3_threshold import NH3_threshold
@@ -12,9 +12,10 @@ from identity.animals.nile_tilapia.nile_parameter_threshold.pH.nile_pH_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.salinity.nile_salinity_threshold import salinity_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.tempearture.nile_tem_threshold import tem_threshold
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
 from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold, Threshold
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
+from identity.units.severity_units.severity_description.severity_des_set_mode import SeverityDesSetModel
 
 class NileTilapiaModel(AquaticAnimal):
     label:str = "Nile Tilapia"
@@ -74,3 +75,25 @@ class NileTilapiaModel(AquaticAnimal):
     # salinity
     def salinityEscalationPolicy(self) -> EscalationPolicy:
         return salinity_EscalationPolicy()
+
+    # ----------
+    # Severity Description Sets
+    # ----------
+
+    def DOSeverityDesSet(self) -> SeverityDesSetModel:
+        return DO_SeverityDesSet()
+
+    def pHSeverityDesSet(self) -> SeverityDesSetModel:
+        return pH_SeverityDesSet()
+
+    def temSeverityDesSet(self) -> SeverityDesSetModel:
+        return temperature_SeverityDesSet()
+
+    def NH3SeverityDesSet(self) -> SeverityDesSetModel:
+        return NH3_SeverityDesSet()
+
+    def NO2_2SeverityDesSet(self) -> SeverityDesSetModel:
+        return NO2_N_SeverityDesSet()
+
+    def salinitySeverityDesSet(self) -> SeverityDesSetModel:
+        return salinity_SeverityDesSet()

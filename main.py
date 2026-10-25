@@ -5,7 +5,7 @@ from identity.parameters.pond_parameter_enum import PondParameters
 from identity.parameters.pond_parameter_model import PondParametersDeliveryModel, PondParametersModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
-from identity.units.severity_units.severity_description.severity_desscription_model import SeverityDescriptionModel
+from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 from datetime import datetime
 
 # Input value
@@ -47,4 +47,3 @@ print(f"{parameters.no2_n.identity.label} : ",parameters.no2_n.getCurrentSeverit
 print(f"{parameters.nh3.identity.label} : ",parameters.nh3.getCurrentSeverityLevel().severityLevel.value , "\n")
 print(f"{parameters.salinity.identity.label} : ",parameters.salinity.getCurrentSeverityLevel().severityLevel.value , "\n")
 
-    

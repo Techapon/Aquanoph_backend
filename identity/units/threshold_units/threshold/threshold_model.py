@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from identity.units.threshold_units.threshold.t_levels import LevelType
+from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
 from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
 from identity.units.threshold_units.threshold.value_range import Range, RangeType

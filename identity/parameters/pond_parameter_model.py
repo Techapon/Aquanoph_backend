@@ -28,6 +28,7 @@ class PondParametersModel:
         ):
         self.species:AquaticAnimal = species
         self.analysisHis:list[AnalysisReportModel] = analysisHis
+        self.dateTime = dateTime
 
         # DO
         self.do = ParameterModel(
@@ -35,6 +36,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.do,
             threshold = self.species.DOThreshold(),
             escalationPolicy = self.species.DOEscalationPolicy(),
+            severityDesSetModel = self.species.DOSeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
@@ -44,6 +46,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.pH,
             threshold = self.species.pHThreshold(),
             escalationPolicy = self.species.pHEscalationPolicy(),
+            severityDesSetModel = self.species.pHSeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
@@ -53,6 +56,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.tem,
             threshold = self.species.temThreshold(),
             escalationPolicy = self.species.temEscalationPolicy(),
+            severityDesSetModel = self.species.temSeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
@@ -62,6 +66,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.nh3,
             threshold = self.species.NH3Threshold(),
             escalationPolicy = self.species.NH3EscalationPolicy(),
+            severityDesSetModel = self.species.NH3SeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
@@ -71,6 +76,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.no2_n,
             threshold = self.species.NO2_2Threshold(),
             escalationPolicy = self.species.NO2_2EscalationPolicy(),
+            severityDesSetModel = self.species.NO2_2SeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
@@ -80,6 +86,7 @@ class PondParametersModel:
             valueNow = species.parameterNow.salinity,
             threshold = self.species.salinityThreshold(),
             escalationPolicy = self.species.salinityEscalationPolicy(),
+            severityDesSetModel = self.species.salinitySeverityDesSet(),
             analysisHis = self.analysisHis,
             dateTime = self.dateTime
         )
