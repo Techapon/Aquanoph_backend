@@ -33,7 +33,6 @@ class ParameterModel:
 
     def _evaluate(self, thresholdLevelModel: ThresholdLevelModel) -> SeverityModel:
         return SeverityEvaluator(
-            parameter = self.identity,
             currentThresholdLevelModel = thresholdLevelModel,
             analysisHis = self.analysisHis,
             policy = self.escalationPolicy,

@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
-from identity.parameters.pond_parameter_enum import PondParameters
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_description.severity_des_set_model import AnySeverityDesSet
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import AnyEscalationPolicy
@@ -21,7 +20,6 @@ from services.minute_to_hours import MinuteToHours
 
 def SeverityEvaluator(
     *,
-    parameter: PondParameters,
     currentThresholdLevelModel: ThresholdLevelModel,
     parameterDateTime: datetime,
     analysisHis: list[AnalysisReportModel],
@@ -35,11 +33,11 @@ def SeverityEvaluator(
     level = currentThresholdLevelModel.level
     direction = currentThresholdLevelModel.direction
 
-    # กรองเฉพาะ parameter นี้ + เฉพาะก่อนเวลาปัจจุบัน + เรียงเก่า -> ใหม่ (สร้าง list ใหม่ ไม่แก้ list ที่ส่งเข้ามา)
+    # กรองเฉพาะ เฉพาะก่อนเวลาปัจจุบัน + เรียงเก่า -> ใหม่ (สร้าง list ใหม่ ไม่แก้ list ที่ส่งเข้ามา)
     history = sorted(
-        (r for r in analysisHis if r.parameter == parameter and r.dateTime < parameterDateTime),
-        key=lambda r: r.dateTime,
-    )
+    (r for r in analysisHis if r.dateTime < parameterDateTime),
+    key=lambda r: r.dateTime,
+)
 
     # 1) CRITICAL: ทันที ไม่ต้องดูประวัติ
     if level == ThresholdLevelType.Critical:

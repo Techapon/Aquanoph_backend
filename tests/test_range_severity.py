@@ -8,6 +8,7 @@ import pytest
 
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
 from identity.parameters.pond_parameter_enum import PondParameters
+from identity.parameters.pond_parameter_history_model import PondParametersHistoryModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_description.severity_description_model import SeverityDescriptionModel
 from identity.units.severity_units.severity_description.severity_des_set_model import (
@@ -29,6 +30,7 @@ from identity.units.threshold_units.threshold_level.threshold_direction import T
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType as T
 from identity.units.threshold_units.threshold_level.threshold_level_model import ThresholdLevelModel
 
+from identity.parameters.pond_parameter_history_model import PondParametersHistoryModel
 NOW = datetime(2026, 10, 25, 12, 0)
 TEM, PH, DO = PondParameters.tem, PondParameters.pH, PondParameters.DO
 
@@ -61,10 +63,9 @@ def series(fromMinAgo, toMinAgo, level, direction=None, severity=S.Optimal, step
     return [rep(m, level, direction, severity, parameter) for m in range(fromMinAgo, toMinAgo - 1, -step)]
 
 
-def run(level, direction, hist, parameter=TEM,
+def run(level, direction, hist,
         policy: AnyEscalationPolicy = RANGE_POL, des: AnySeverityDesSet = RANGE_DES):
     return SeverityEvaluator(
-        parameter=parameter,
         currentThresholdLevelModel=ThresholdLevelModel(level=level, direction=direction),
         parameterDateTime=NOW, analysisHis=hist, policy=policy, descriptionSet=des,
     )
@@ -119,7 +120,7 @@ def test_continuous_stress_escalates_with_direction_message():
     r = run(T.Stress, D.Low, hist)
     assert r.severityLevel == S.ElevatedRisk
     assert r.severityDescription.description == "LOW:contStress"
-    assert "LOW" in (r.severityDescription.appendDes or "")             # label ของฝั่งถูกใส่ในข้อความเชิงเวลา
+    assert "LOW" in (r.severityDescription.appendDes or "")            # label ของฝั่งถูกใส่ในข้อความเชิงเวลา
 
 def test_cumulative_stress_per_side():
     # Low stress สะสม 9h ใน 24h คั่นด้วย optimal -> Elevated; ฝั่ง high ที่ไม่มีประวัติ -> Stress
@@ -153,7 +154,7 @@ def test_recovery_hold_uses_event_side_and_remaining_time():
     r = run(T.Optimal, None, hist)
     assert r.severityLevel == S.Stress
     assert r.severityDescription.description == "HIGH:recElevated"
-    assert "1.5" in (r.severityDescription.appendDes or "")           # hold 120 - optimal 30 = 90 นาที = 1.5 ชม. (stub MinuteToHours)
+    assert "1.5" in (r.severityDescription.appendDes or "")          # hold 120 - optimal 30 = 90 นาที = 1.5 ชม. (stub MinuteToHours)
 
 def test_recovery_hold_released_after_enough_optimal():
     hist = [rep(300, T.HighRisk, D.High, S.ElevatedRisk)] + series(250, 30, T.Optimal)
@@ -180,9 +181,13 @@ def test_pure_stress_history_does_not_hold():
 
 
 # ---------- parameter filter / immutability / Level model ----------
-def test_history_of_other_parameter_is_ignored():
-    other = series(510, 30, T.Stress, D.Low, parameter=PH)       # pH เครียดมา 8.5h
-    assert run(T.Stress, D.Low, other, parameter=TEM).severityLevel == S.Stress
+def test_history_model_rejects_wrong_parameter():
+    with pytest.raises(ValueError):
+        PondParametersHistoryModel(tem=series(120, 30, T.Stress, D.Low, parameter=PH))   # pH อยู่ผิดช่อง
+    PondParametersHistoryModel(
+        tem=series(120, 30, T.Stress, D.Low),
+        pH=series(120, 30, T.Optimal, parameter=PH),
+    )   
 
 def test_history_list_not_mutated():
     hist = series(120, 30, T.Optimal)
@@ -191,10 +196,22 @@ def test_history_list_not_mutated():
     assert [r.dateTime for r in hist] == before
 
 def test_level_model_still_works_without_direction():
-    hist = series(510, 30, T.Stress, None, parameter=DO)
-    r = run(T.Stress, None, hist, parameter=DO, policy=EscalationPolicy(), des=desSet("DO"))
+    hist = series(510, 30, T.Stress, None)
+    r = run(T.Stress, None, hist, policy=EscalationPolicy(), des=desSet("DO"))
     assert r.severityLevel == S.ElevatedRisk and r.severityDescription.description == "DO:contStress"
 
 def test_range_policy_without_direction_raises_clearly():
     with pytest.raises(ValueError):
         RANGE_POL.forDirection(None)
+
+
+def test_parameter_model_builds_report_with_direction():
+    from identity.parameters.parameter_model import ParameterModel
+    pm = ParameterModel(
+        identity=TEM, valueNow=33.0, dateTime=NOW, threshold=temp,
+        escalationPolicy=RANGE_POL, severityDesSetModel=RANGE_DES, analysisHis=[],
+    )
+    r = pm.buildAnalysisReport()
+    assert r.parameter == TEM
+    assert (r.thresholdStatus, r.thresholdDirection) == (T.HighRisk, D.High)
+    assert r.severityStatus == S.ElevatedRisk

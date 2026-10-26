@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 from identity.parameters.parameter_model import ParameterModel
 from identity.parameters.pond_parameter_enum import PondParameters
-from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
+from identity.parameters.pond_parameter_history_model import PondParametersHistoryModel
 
 if TYPE_CHECKING:
     from identity.animals.animal_model import AquaticAnimal
@@ -23,11 +23,11 @@ class PondParametersModel:
             self,
             *,
             species: AquaticAnimal,
-            analysisHis: list[AnalysisReportModel],
+            analysisHis: PondParametersHistoryModel,
             dateTime: datetime
         ):
         self.species:AquaticAnimal = species
-        self.analysisHis:list[AnalysisReportModel] = analysisHis
+        self.analysisHis:PondParametersHistoryModel = analysisHis
         self.dateTime = dateTime
 
         # DO
@@ -37,7 +37,7 @@ class PondParametersModel:
             threshold = self.species.DOThreshold(),
             escalationPolicy = self.species.DOEscalationPolicy(),
             severityDesSetModel = self.species.DOSeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.do,
             dateTime = self.dateTime
         )
         # pH
@@ -47,7 +47,7 @@ class PondParametersModel:
             threshold = self.species.pHThreshold(),
             escalationPolicy = self.species.pHEscalationPolicy(),
             severityDesSetModel = self.species.pHSeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.pH,
             dateTime = self.dateTime
         )
         # Tem
@@ -57,7 +57,7 @@ class PondParametersModel:
             threshold = self.species.temThreshold(),
             escalationPolicy = self.species.temEscalationPolicy(),
             severityDesSetModel = self.species.temSeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.tem,
             dateTime = self.dateTime
         )
         # NH3
@@ -67,7 +67,7 @@ class PondParametersModel:
             threshold = self.species.NH3Threshold(),
             escalationPolicy = self.species.NH3EscalationPolicy(),
             severityDesSetModel = self.species.NH3SeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.nh3,
             dateTime = self.dateTime
         )
         # NO2-N
@@ -77,7 +77,7 @@ class PondParametersModel:
             threshold = self.species.NO2_2Threshold(),
             escalationPolicy = self.species.NO2_2EscalationPolicy(),
             severityDesSetModel = self.species.NO2_2SeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.no2_n,
             dateTime = self.dateTime
         )
         # Salinity
@@ -87,7 +87,7 @@ class PondParametersModel:
             threshold = self.species.salinityThreshold(),
             escalationPolicy = self.species.salinityEscalationPolicy(),
             severityDesSetModel = self.species.salinitySeverityDesSet(),
-            analysisHis = self.analysisHis,
+            analysisHis = self.analysisHis.salinity,
             dateTime = self.dateTime
         )
 
