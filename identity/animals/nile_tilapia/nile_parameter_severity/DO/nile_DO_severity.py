@@ -32,13 +32,13 @@ def DO_SeverityDesSet() -> SeverityDesSetModel:
 
         # Stress
         pureStress = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดเล็กน้อย",
+            des = "ปลเครียดเล็กน้อย",
             detail= "อาจเป็นส่งผลเสียต่อสุขภาพหากอยู่นานกว่านี้",
             guid = "ระวังและดูแลให้ DO กลับมาอยู่ในระดับที่เหมาะสม",
             append= None
         ),
         continuousStressExceeded = SeverityDescriptionModel(
-            des = "ปลาสะบายเครียดสูง",
+            des = "ปลาเครียดสูง",
             detail= "เสี่ยงส่งผลต่อสุขภาพระยะยาวหากอยู่นานกว่านี้ ปลาอาจ...",
             guid = "ระวังและดูแลให้ DO อยู่ในระดับดีโดยด่วน",
             append= None

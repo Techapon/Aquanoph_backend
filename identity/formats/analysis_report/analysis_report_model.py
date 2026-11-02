@@ -11,9 +11,7 @@ class AnalysisReportModel:
     parameter : PondParameters
     thresholdStatus : ThresholdLevelType
     thresholdDirection : ThresholdDirection | None
-    severityStatus : SeverityLevelType
-    description : str
-    guidance : str
+    severity: SeverityModel
 
     def __init__(
         self,
@@ -28,6 +26,16 @@ class AnalysisReportModel:
         self.parameter = parameter
         self.thresholdStatus = thresholdStatus
         self.thresholdDirection = thresholdDirection
-        self.severityStatus = severity.severityLevel
-        self.description = severity.severityDescription.description
-        self.guidance = severity.severityDescription.guidance
+        self.severity = severity
+
+    @property
+    def severityStatus(self) -> SeverityLevelType:
+        return self.severity.severityLevel
+
+    @property
+    def description(self) -> str:
+        return self.severity.severityDescription.description
+
+    @property
+    def guidance(self) -> str:
+        return self.severity.severityDescription.guidance

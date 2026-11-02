@@ -14,4 +14,8 @@ class SeverityModel:
     ):
         self.severityLevel = severityLevel
         self.severityDescription = severityDes
+
+    @property
+    def severityStatus(self) -> SeverityLevelType:
+        return self.severityLevel
         
