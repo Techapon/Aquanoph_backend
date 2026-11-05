@@ -6,6 +6,7 @@ from config.constants import cfg
 from identity.analysis.helpers import (
     NightWindow,
     aerationHours,
+    dailyMealPct,
     doneActivities,
     inLocalWindow,
     isNight,
@@ -107,6 +108,41 @@ def test_meal_pct():
     zeroPond = makePond(biomassKg=0.0)
     with pytest.raises(ValueError):
         mealPct(act, zeroPond)
+
+
+def test_daily_meal_pct():
+    pond = makePond(biomassKg=400.0)
+    targetD = date(2026, 10, 25)
+
+    # 1. Done feeding on target date: 6 kg / 400 kg = 1.5%
+    act1 = makeActivity("a1", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                        startTime=t("2026-10-25 08:00", TZ), quantityKg=6.0)
+
+    # 2. Second done feeding on target date: 4 kg / 400 kg = 1.0%
+    act2 = makeActivity("a2", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                        startTime=t("2026-10-25 14:00", TZ), quantityKg=4.0)
+
+    # 3. Pending feeding on target date (Rule 6: not counted)
+    actPending = makeActivity("a3", activityType=ActivityType.feeding, status=ActivityStatus.pending,
+                              startTime=t("2026-10-25 17:00", TZ), quantityKg=5.0)
+
+    # 4. Skipped feeding on target date (Rule 6: not counted)
+    actSkipped = makeActivity("a4", activityType=ActivityType.feeding, status=ActivityStatus.skipped,
+                              startTime=t("2026-10-25 12:00", TZ), quantityKg=3.0)
+
+    # 5. Done feeding on different local date (2026-10-26 01:00 local time -> Oct 26)
+    actOtherDay = makeActivity("a5", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                               startTime=t("2026-10-26 01:00", TZ), quantityKg=6.0)
+
+    # 6. Feeding with quantityKg=None (Rule 5: unknown != 0, skipped from sum)
+    actNoQty = makeActivity("a6", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                            startTime=t("2026-10-25 10:00", TZ), quantityKg=None)
+
+    allActs = [act1, act2, actPending, actSkipped, actOtherDay, actNoQty]
+    resultPct = dailyMealPct(allActs, pond, targetD, TZ)
+    # Expected: act1 (1.5%) + act2 (1.0%) = 2.5%
+    assert resultPct == 2.5
+
 
 
 def test_aeration_hours():

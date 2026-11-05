@@ -89,3 +89,12 @@ def severityRank(val: Any) -> int:
 def isOptimalZone(v: SeverityReportView) -> bool:
     """Check if report view has zone == Optimal."""
     return v.zone == ThresholdLevelType.Optimal
+
+
+def viewsFor(
+    views: Sequence[SeverityReportView],
+    parameter: PondParameters,
+) -> tuple[SeverityReportView, ...]:
+    """Filter a sequence of SeverityReportView for a specific parameter, preserving chronological order."""
+    return tuple(v for v in views if v.parameter == parameter)
+

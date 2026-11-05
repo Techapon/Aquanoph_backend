@@ -8,6 +8,7 @@ from identity.analysis.severity_view import (
     severityRank,
     toView,
     toViews,
+    viewsFor,
     zoneRank,
 )
 from identity.parameters.pond_parameter_enum import PondParameters
@@ -124,3 +125,27 @@ def test_input_history_list_not_mutated():
     originalOrder = list(rawList)
     toViews(rawList)
     assert rawList == originalOrder
+
+
+# 7. viewsFor filters per parameter and preserves time ascending
+def test_views_for_filters_parameter_and_preserves_order():
+    t1 = datetime(2026, 10, 25, 10, 0)
+    t2 = datetime(2026, 10, 25, 11, 0)
+    t3 = datetime(2026, 10, 25, 12, 0)
+
+    v1 = makeView(PondParameters.DO, time=t1, value=6.0)
+    v2 = makeView(PondParameters.pH, time=t2, value=7.5)
+    v3 = makeView(PondParameters.DO, time=t3, value=5.5)
+
+    allViews = (v1, v2, v3)
+    doViews = viewsFor(allViews, PondParameters.DO)
+    assert len(doViews) == 2
+    assert doViews == (v1, v3)
+
+    phViews = viewsFor(allViews, PondParameters.pH)
+    assert len(phViews) == 1
+    assert phViews == (v2,)
+
+    temViews = viewsFor(allViews, PondParameters.tem)
+    assert len(temViews) == 0
+

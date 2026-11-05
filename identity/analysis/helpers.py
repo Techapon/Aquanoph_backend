@@ -242,3 +242,29 @@ def aerationHours(
 
     totalSeconds = sum((end - start).total_seconds() for start, end in merged)
     return totalSeconds / 3600.0
+
+
+def dailyMealPct(
+    acts: Sequence[Activity],
+    pond: PondInfo,
+    targetDate: date,
+    tz: str,
+) -> float:
+    """Calculate total percentage of daily feed delivered on targetDate (local time).
+
+    Rules:
+    - Only ActivityStatus.done counts; pending and skipped ignored (Rule 6).
+    - Uses localDate(act.startTime, tz) to match targetDate (Rule 3).
+    - Skips feeding activities where quantityKg is None without assuming 0 (Rule 5).
+    - Delegates to mealPct per activity and sums the results.
+    """
+    totalPct = 0.0
+    for act in acts:
+        if act.type != ActivityType.feeding or act.status != ActivityStatus.done:
+            continue
+        if act.quantityKg is None:
+            continue
+        if localDate(act.startTime, tz) == targetDate:
+            totalPct += mealPct(act, pond)
+    return totalPct
+
