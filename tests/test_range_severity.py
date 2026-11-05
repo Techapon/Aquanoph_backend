@@ -215,3 +215,4 @@ def test_parameter_model_builds_report_with_direction():
     assert r.parameter == TEM
     assert (r.thresholdStatus, r.thresholdDirection) == (T.HighRisk, D.High)
     assert r.severityStatus == S.ElevatedRisk
+    assert r.value == 33.0

@@ -56,4 +56,5 @@ class ParameterModel:
             thresholdStatus = thresholdLevelModel.level,
             thresholdDirection = thresholdLevelModel.direction,
             severity = severity,
+            value = self.valueNow,
         )

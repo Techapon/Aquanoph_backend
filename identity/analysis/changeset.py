@@ -1,63 +1,97 @@
 """ChangeSet model representing the pure output of an analysis run.
 
 The analysis engine produces only a ChangeSet. It never mutates inputs or writes to DB (Contract §3).
-A ChangeSet is empty when no state change is needed (idempotency §7.7).
+Strictly follows PHASE_1_foundation.md §4:
+  ActivityOp(op: "create"|"update"|"delete", activity: Activity|None, activityId: str|None, reason: str|None)
+  Notification(kind: str, targetType: str, targetId: str, reasonKey: str, facts: Mapping)
+  ChangeSet(diagnostics: tuple, predictions: tuple, recommendations: tuple, activityOps: tuple, notifications: tuple)
+     .isEmpty()  .merge(other) -> ChangeSet   (later object with same id wins)
+  def changedOnly(newObjs, existingById) -> tuple
 """
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal, Mapping
 
-from identity.analysis.models import Notification, Recommendation
+from identity.analysis.models import (
+    Activity,
+    DiagnosticReport,
+    Notification,
+    Prediction,
+    Recommendation,
+)
+
+
+@dataclass(frozen=True)
+class ActivityOp:
+    op: Literal["create", "update", "delete"]
+    activity: Activity | None = None
+    activityId: str | None = None
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.op in ("create", "update") and self.activity is None:
+            raise ValueError(f"activity is required for op '{self.op}'")
+        if self.op == "delete" and self.activityId is None and self.activity is None:
+            raise ValueError("activityId or activity is required for op 'delete'")
+
+
+def changedOnly(newObjs: tuple[Any, ...], existingById: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Keep only objects that do not exist or are not equal to the existing version."""
+    return tuple(
+        obj for obj in newObjs
+        if getattr(obj, "id", None) not in existingById or existingById[getattr(obj, "id", None)] != obj
+    )
 
 
 @dataclass(frozen=True)
 class ChangeSet:
-    upsertEpisodes: tuple[Any, ...] = ()
-    upsertDetectors: tuple[Any, ...] = ()
-    upsertPredictions: tuple[Any, ...] = ()
-    upsertRecommendations: tuple[Recommendation, ...] = ()
+    diagnostics: tuple[DiagnosticReport, ...] = ()
+    predictions: tuple[Prediction, ...] = ()
+    recommendations: tuple[Recommendation, ...] = ()
+    activityOps: tuple[ActivityOp, ...] = ()
     notifications: tuple[Notification, ...] = ()
 
+    # Backward compatibility properties
     @property
+    def upsertEpisodes(self) -> tuple[DiagnosticReport, ...]:
+        return self.diagnostics
+
+    @property
+    def upsertDetectors(self) -> tuple:
+        return ()
+
+    @property
+    def upsertPredictions(self) -> tuple[Prediction, ...]:
+        return self.predictions
+
+    @property
+    def upsertRecommendations(self) -> tuple[Recommendation, ...]:
+        return self.recommendations
+
     def isEmpty(self) -> bool:
         return (
-            len(self.upsertEpisodes) == 0
-            and len(self.upsertDetectors) == 0
-            and len(self.upsertPredictions) == 0
-            and len(self.upsertRecommendations) == 0
+            len(self.diagnostics) == 0
+            and len(self.predictions) == 0
+            and len(self.recommendations) == 0
+            and len(self.activityOps) == 0
             and len(self.notifications) == 0
         )
 
-    def diffOnly(self, existingSnapshot: Any) -> "ChangeSet":
-        """Filter out records that already exist identically in snapshot (idempotency Rule 7)."""
-        # Compares objects by id + equality to ensure only changed objects are in ChangeSet.
-        existingRecMap = {r.id: r for r in getattr(existingSnapshot, "recommendations", ())}
-        filteredRecs = tuple(
-            r for r in self.upsertRecommendations
-            if r.id not in existingRecMap or existingRecMap[r.id] != r
-        )
-
-        existingEpMap = {e.id: e for e in getattr(existingSnapshot, "activeEpisodes", ()) + getattr(existingSnapshot, "closedEpisodes", ())}
-        filteredEps = tuple(
-            e for e in self.upsertEpisodes
-            if getattr(e, "id", None) not in existingEpMap or existingEpMap[e.id] != e
-        )
-
-        existingDetMap = {d.id: d for d in getattr(existingSnapshot, "activeDetectors", ())}
-        filteredDets = tuple(
-            d for d in self.upsertDetectors
-            if getattr(d, "id", None) not in existingDetMap or existingDetMap[d.id] != d
-        )
-
-        existingPredMap = {p.id: p for p in getattr(existingSnapshot, "activePredictions", ())}
-        filteredPreds = tuple(
-            p for p in self.upsertPredictions
-            if getattr(p, "id", None) not in existingPredMap or existingPredMap[p.id] != p
-        )
+    def merge(self, other: "ChangeSet") -> "ChangeSet":
+        """Merge two ChangeSets; later (other) wins on id collision."""
+        def _mergeById(a: tuple, b: tuple) -> tuple:
+            combined: dict[str, Any] = {}
+            for obj in (*a, *b):
+                objId = getattr(obj, "id", None)
+                if objId is not None:
+                    combined[objId] = obj
+                else:
+                    combined[id(obj)] = obj
+            return tuple(combined.values())
 
         return ChangeSet(
-            upsertEpisodes=filteredEps,
-            upsertDetectors=filteredDets,
-            upsertPredictions=filteredPreds,
-            upsertRecommendations=filteredRecs,
-            notifications=self.notifications,
+            diagnostics=_mergeById(self.diagnostics, other.diagnostics),
+            predictions=_mergeById(self.predictions, other.predictions),
+            recommendations=_mergeById(self.recommendations, other.recommendations),
+            activityOps=self.activityOps + other.activityOps,
+            notifications=self.notifications + other.notifications,
         )
