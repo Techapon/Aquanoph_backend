@@ -19,6 +19,8 @@ from identity.analysis.helpers import (
     plannedActivities,
     toUtc,
     toUtcNaive,
+    totalMealPct,
+    totalMealPctDetail,
     zoneAt,
 )
 from identity.analysis.models import Activity, ActivityStatus, ActivityType, PondInfo
@@ -284,3 +286,39 @@ def test_local_day_bounds_new_york_dst_days():
     fallStart, fallEnd = localDayBounds(date(2026, 11, 1), "America/New_York")
     assert fallStart.tzinfo is None and fallEnd.tzinfo is None
     assert fallEnd - fallStart == timedelta(hours=25)
+
+
+# ---------- totalMealPct (Phase 4) ----------
+def test_total_meal_pct_sums_half_open_window():
+    pond = makePond(biomassKg=400.0)
+    base = datetime(2026, 10, 25, 12, 0)
+    fromT = base - timedelta(hours=24)
+    toT = base
+    lower = makeActivity("a1", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                         startTime=fromT, quantityKg=4.0)
+    inside = makeActivity("a2", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                          startTime=base - timedelta(hours=1), quantityKg=4.0)
+    atTo = makeActivity("a3", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                        startTime=toT, quantityKg=4.0)
+    assert totalMealPct([lower, inside, atTo], pond, fromT, toT) == 2.0
+
+
+def test_total_meal_pct_skips_pending_skipped_unknown():
+    pond = makePond(biomassKg=400.0)
+    base = datetime(2026, 10, 25, 12, 0)
+    fromT = base - timedelta(hours=24)
+    toT = base
+    start = base - timedelta(hours=1)
+    known = makeActivity("k", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                         startTime=start, quantityKg=4.0)
+    unknown = makeActivity("u", activityType=ActivityType.feeding, status=ActivityStatus.done,
+                           startTime=start, quantityKg=None)
+    pending = makeActivity("p", activityType=ActivityType.feeding, status=ActivityStatus.pending,
+                           startTime=start, quantityKg=4.0)
+    skipped = makeActivity("s", activityType=ActivityType.feeding, status=ActivityStatus.skipped,
+                           startTime=start, quantityKg=4.0)
+    acts = [known, unknown, pending, skipped]
+    assert totalMealPct(acts, pond, fromT, toT) == 1.0
+    pct, unknownCount = totalMealPctDetail(acts, pond, fromT, toT)
+    assert pct == 1.0
+    assert unknownCount == 1

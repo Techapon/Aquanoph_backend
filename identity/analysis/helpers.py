@@ -276,3 +276,35 @@ def localDayBounds(d: date, tz: str) -> tuple[datetime, datetime]:
     localEnd = datetime.combine(d + timedelta(days=1), time.min, tzinfo=zone)
     return toUtcNaive(localStart), toUtcNaive(localEnd)
 
+
+def totalMealPct(
+    acts: Sequence[Activity],
+    pond: PondInfo,
+    fromT: datetime,
+    toT: datetime,
+) -> float:
+    """Sum mealPct for done feedings with startTime in [fromT, toT). Unknown quantity skipped."""
+    pct, _ = totalMealPctDetail(acts, pond, fromT, toT)
+    return pct
+
+
+def totalMealPctDetail(
+    acts: Sequence[Activity],
+    pond: PondInfo,
+    fromT: datetime,
+    toT: datetime,
+) -> tuple[float, int]:
+    """Return (total meal percent, count of skipped unknown-quantity feedings)."""
+    total = 0.0
+    unknownCount = 0
+    for act in acts:
+        if act.type != ActivityType.feeding or act.status != ActivityStatus.done:
+            continue
+        if act.startTime < fromT or act.startTime >= toT:
+            continue
+        if act.quantityKg is None:
+            unknownCount += 1
+            continue
+        total += mealPct(act, pond)
+    return total, unknownCount
+
