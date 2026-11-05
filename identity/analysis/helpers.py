@@ -268,3 +268,11 @@ def dailyMealPct(
             totalPct += mealPct(act, pond)
     return totalPct
 
+
+def localDayBounds(d: date, tz: str) -> tuple[datetime, datetime]:
+    """Return local day [00:00, next 00:00) as naive UTC datetimes."""
+    zone = ZoneInfo(tz)
+    localStart = datetime.combine(d, time.min, tzinfo=zone)
+    localEnd = datetime.combine(d + timedelta(days=1), time.min, tzinfo=zone)
+    return toUtcNaive(localStart), toUtcNaive(localEnd)
+

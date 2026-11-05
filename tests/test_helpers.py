@@ -261,3 +261,26 @@ def test_overlap_returns_timedelta():
 
     noDelta = overlap(t1, t2, t2, t4)
     assert noDelta == timedelta(0)
+
+
+# ---------- localDayBounds (Phase 3) ----------
+def test_local_day_bounds_bangkok_is_24_hours():
+    from identity.analysis.helpers import localDayBounds
+
+    start, end = localDayBounds(date(2026, 10, 25), "Asia/Bangkok")
+    assert start == datetime(2026, 10, 24, 17, 0)
+    assert end == datetime(2026, 10, 25, 17, 0)
+    assert start.tzinfo is None and end.tzinfo is None
+    assert end - start == timedelta(hours=24)
+
+
+def test_local_day_bounds_new_york_dst_days():
+    from identity.analysis.helpers import localDayBounds
+
+    springStart, springEnd = localDayBounds(date(2026, 3, 8), "America/New_York")
+    assert springStart.tzinfo is None and springEnd.tzinfo is None
+    assert springEnd - springStart == timedelta(hours=23)
+
+    fallStart, fallEnd = localDayBounds(date(2026, 11, 1), "America/New_York")
+    assert fallStart.tzinfo is None and fallEnd.tzinfo is None
+    assert fallEnd - fallStart == timedelta(hours=25)
