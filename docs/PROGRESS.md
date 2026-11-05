@@ -5,6 +5,7 @@
 | Phase 0 | Done | 33 passed | Severity engine baseline + Bug 1 fix (severityStatus) |
 | Phase 1 | Done | 84 passed | Aligned to spec: config (49), severity_view (12), helpers (13), changeset (7), store_sim (3) |
 | Fix Phase 0-1 | Done | 117 total | Resolved blocker F-01, aligned code to spec, added dailyMealPct and viewsFor with tests |
+| Phase 2 | Done | 33 added; 152 passed | Diagnostic episodes, eight cause rules, runner, signals, stale gate, idempotency; pytest.ini added for pytest launcher imports |
 
 ## Decisions made by agent & owner
 - **F-01 Approved:** Added `value: float | None = None` to `AnalysisReportModel` and passed `self.valueNow` from `ParameterModel.buildAnalysisReport()`. Removed unneeded `description` and `guidance` properties from `AnalysisReportModel`.

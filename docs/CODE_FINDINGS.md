@@ -36,3 +36,15 @@ Tracking technical findings, discrepancies, typos, and architecture blockers dis
   - **Location:** `identity/animals/animal_model.py:46`
   - **Detail:** Spelled `NO2_2Threshold` instead of `NO2_N_Threshold`.
   - **Fix/Rule (R2):** Keep real engine method name in ABC and concrete classes.
+
+## Phase 2 Review Fixes
+- **F-08: NO2/NH3 first and last evidence time depended on input order**
+  - **Location:** `identity/diagnostic/cause_rules.py`
+  - **Resolution:** Sorted abnormal NH3 views chronologically before deriving `nh3FirstTime` and `nh3LastTime`. Added an unsorted-input regression assertion in `tests/test_cause_rules.py`.
+- **F-09: Missing regression coverage for activity-trigger idempotency and activity-deletion revision**
+  - **Location:** `tests/test_diagnostic_runner.py`
+  - **Resolution:** Added tests for StoreSim-applied activity revisions followed by identical rerun, and deleted feeding recomputation retaining only positive evidence.
+
+## Phase 2 Test Infrastructure
+- **F-10: `pytest -q` did not add repository root to Python import path**
+  - **Resolution:** Added root `pytest.ini` with `pythonpath = .`. `pytest -q` now completes successfully from repository root.

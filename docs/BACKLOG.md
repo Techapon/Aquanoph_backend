@@ -10,3 +10,4 @@ Out-of-scope items tracked for future passes (per AGENT_CONTEXT.md.md section 8 
 - **Dead code `dif_minute.py`**: Function `calDiffMinute` is unused throughout the codebase.
 - **Duplicated description factories**: Severity description factories for DO, NH3, NO2-N, and Salinity repeat identical boilerplate; should be consolidated into a shared factory helper (similar to pH and Temperature).
 - **Unbounded history scan**: History scans in `SeverityEvaluator` and `findPendingRecovery` are O(N) over all historical reports without a time horizon cap. Needs bounding to `historyHorizonDays` (8 days).
+- **Episode onset left-censoring**: If the history horizon begins inside an episode, `Episode.onsetAt` is the first retained non-Optimal reading. Its deterministic ID changes when the horizon slides. Resolve in Phase 7 with persisted episode continuity or a stable onset reference.
