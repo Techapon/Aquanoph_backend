@@ -14,3 +14,4 @@ Out-of-scope items tracked for future passes (per AGENT_CONTEXT.md.md section 8 
 - **Decline reason not stored**: `dismissRec` has no reason field; the model has no slot. Phase 7 may add storage.
 - **Urgency never lowered**: Reconcile only raises urgency while a rec is open; never lowers it. Phase 7 may revisit with owner.
 - **Blocked ★ rules**: `blocked()` uses dismissed rec inside validUntil (Critical-escalation exception) and applied rec with pending/done activity (T5/T18). Phase 7 may refine.
+- **Expert review of drafted cause texts and guidance (spec §10)**: Only Case 1/2/3 texts are golden; the remaining cause headings/bodies and guidance lines in `templates_en.py` are author drafts awaiting expert review.
