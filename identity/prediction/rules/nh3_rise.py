@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 
 from identity.analysis.helpers import doneActivities, plannedActivities, totalMealPctDetail, zoneAt
-from identity.analysis.models import ActivityType
+from identity.analysis.models import ActivityStatus, ActivityType
 from identity.prediction.rules._common import (
     PredictionContext,
     RuleResult,
@@ -26,7 +26,13 @@ def evaluate(ctx: PredictionContext) -> RuleResult:
         return RuleResult(skip=True, fire=False, reason=None, met=(), scope=None,
                           riskStart=None, riskEnd=None, evidence={})
 
-    pct, unknownCount = totalMealPctDetail(ctx.activities, ctx.pond, now - timedelta(hours=24), now)
+    fromT = now - timedelta(hours=24)
+    pct, unknownCount = totalMealPctDetail(ctx.activities, ctx.pond, fromT, now)
+    totalKg = sum(
+        a.quantityKg for a in ctx.activities
+        if a.type == ActivityType.feeding and a.status == ActivityStatus.done
+        and fromT <= a.startTime < now and a.quantityKg is not None
+    )
     c1 = pct >= cfg.dailyHeavyPct
 
     c2 = latestNh3.zone != ThresholdLevelType.Optimal
@@ -54,6 +60,8 @@ def evaluate(ctx: PredictionContext) -> RuleResult:
 
     evidence: dict[str, object] = {
         "totalMealPct": pct,
+        "totalKg": totalKg,
+        "horizonHours": cfg.nh3RiseHorizonHours,
         "unknownQtyCount": unknownCount,
         "nh3Zone": latestNh3.zone,
         "nh3Value": latestNh3.value,

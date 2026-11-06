@@ -7,6 +7,8 @@
 | Fix Phase 0-1 | Done | 117 total | Resolved blocker F-01, aligned code to spec, added dailyMealPct and viewsFor with tests |
 | Phase 2 | Done | 33 added; 152 passed | Diagnostic episodes, eight cause rules, runner, signals, stale gate, idempotency; pytest.ini added for pytest launcher imports |
 | Phase 3 | Done | 8 added; 160 passed | PH_SWING detector, local complete days, coverage and DST-aware expected reading count; review test gaps closed |
+| Phase 4 | Done | 23 added; 185 passed | Prediction: 3 rules (DO_NIGHT, DO_REPEAT, NH3_RISE), lifecycle runner, predictionSignals, totalMealPct helper |
+| Phase 5 | Done | 29 added; 214 passed | Recommendation: catalog (AERATE/WATER_CHANGE/ADD_ALKALINITY), reconcile+blocked, buildApplyPlan (D15/D17), snooze/dismiss |
 
 ## Decisions made by agent & owner
 - **F-01 Approved:** Added `value: float | None = None` to `AnalysisReportModel` and passed `self.valueNow` from `ParameterModel.buildAnalysisReport()`. Removed unneeded `description` and `guidance` properties from `AnalysisReportModel`.
