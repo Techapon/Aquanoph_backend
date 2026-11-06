@@ -15,3 +15,12 @@ Out-of-scope items tracked for future passes (per AGENT_CONTEXT.md.md section 8 
 - **Urgency never lowered**: Reconcile only raises urgency while a rec is open; never lowers it. Phase 7 may revisit with owner.
 - **Blocked ★ rules**: `blocked()` uses dismissed rec inside validUntil (Critical-escalation exception) and applied rec with pending/done activity (T5/T18). Phase 7 may refine.
 - **Expert review of drafted cause texts and guidance (spec §10)**: Only Case 1/2/3 texts are golden; the remaining cause headings/bodies and guidance lines in `templates_en.py` are author drafts awaiting expert review.
+- **Duplicated temperature-High lookup**: Phase 2 `_doTempCause` and Phase 4 `_common.tempHighNow` repeat the same lookup; consolidate in Phase 7 (not refactored yet).
+- **Thai severity descriptions from engine file 09** remain out of scope (O7); Phase 7 is the last phase, so they stay in BACKLOG.
+- **`services/run_analysis.py` notification fill**: `activityType` is filled only when exactly one activity matches `trigger.tFrom`; deleted activities leave it `None` (accepted limitation, text falls back to "an activity").
+- **`render.py` derived fragments**: several fragment defaults assume facts exist; missing keys are guarded by `setdefault`, but the assembly is brittle and should be refactored in a later pass.
+- **`activity_replaced` split notification**: `after` tuple uses `tuple(keeps)`; if the second part is dropped it may have fewer than two entries. Handled in `renderNotification` via `len(after)` checks.
+- **Skipped deletable (★ default)**: user `skipped` activities are deletable; owner may reverse this.
+- **Batch Save all-or-nothing (★ default)**: any single invalid edit aborts the whole batch.
+- **`done ↔ skipped` allowed (★ default)**: status can move between `done` and `skipped` but never to `pending`.
+- **Detector only on `reading` trigger (★ default)**: `detectPhSwing` runs only on `reading` triggers; other trigger kinds skip the detector.

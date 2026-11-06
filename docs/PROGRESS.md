@@ -10,6 +10,7 @@
 | Phase 4 | Done | 23 added; 185 passed | Prediction: 3 rules (DO_NIGHT, DO_REPEAT, NH3_RISE), lifecycle runner, predictionSignals, totalMealPct helper |
 | Phase 5 | Done | 29 added; 214 passed | Recommendation: catalog (AERATE/WATER_CHANGE/ADD_ALKALINITY), reconcile+blocked, buildApplyPlan (D15/D17), snooze/dismiss |
 | Phase 6 | Done | 10 added; 224 passed | English text: templates keyed by id, renderers (Case 1/2/3 golden), no Thai, Rule 5 clean |
+| Phase 7 | Done | 27 added; 251 passed | Orchestrator run_analysis, activity-edit validation (T17/O8), scenario driver, T1–T18 + Cases 1–3 + invariants, TEST_MAP/ADAPTER_NOTES |
 
 ## Decisions made by agent & owner
 - **F-01 Approved:** Added `value: float | None = None` to `AnalysisReportModel` and passed `self.valueNow` from `ParameterModel.buildAnalysisReport()`. Removed unneeded `description` and `guidance` properties from `AnalysisReportModel`.

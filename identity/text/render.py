@@ -128,6 +128,12 @@ def renderDiagnostic(report: DiagnosticReport, cfg=DEFAULT_CONFIG):
         if ruleId == "SAL_C_WATERCHG":
             facts["fraction"] = _fmt_fraction(facts.get("fraction"))
         heading, body = T.CAUSE_TEMPLATES[ruleId]
+        # body templates use {time}; map from feedTime/waterChangeTime when absent.
+        if "time" not in facts:
+            if facts.get("feedTime") is not None:
+                facts["time"] = facts["feedTime"]
+            elif facts.get("waterChangeTime") is not None:
+                facts["time"] = facts["waterChangeTime"]
         # times in facts are naive-UTC datetimes; render pond-local
         for key in ("feedTime", "waterChangeTime", "tempTime", "onsetAt", "time"):
             if key in facts and isinstance(facts[key], datetime):
@@ -145,7 +151,56 @@ def renderDiagnostic(report: DiagnosticReport, cfg=DEFAULT_CONFIG):
     )
 
 
+def _recommendationToDraft(rec):
+    from identity.recommendation.types import RecDraft
+    pa = rec.proposedActivities[0] if getattr(rec, "proposedActivities", ()) else None
+    return RecDraft(
+        entryId=rec.entryId,
+        dedupeKey=rec.dedupeKey,
+        urgency=rec.urgency,
+        validFrom=rec.validFrom,
+        validUntil=rec.validUntil,
+        sources=getattr(rec, "sources", ()),
+        proposedActivities=getattr(rec, "proposedActivities", ()),
+        applyMode=rec.applyMode,
+        textKey=_recommendationTextKey(rec),
+        facts={
+            "planStart": pa.startTime if pa else None,
+            "planEnd": pa.endTime if pa else None,
+            "deadline": rec.validUntil,
+            "fraction": pa.fraction if pa else None,
+            "parameters": (),
+            "doLastSeverity": "Stress",
+            "doOnsetAt": rec.createdAt,
+        },
+    )
+
+
+def _recommendationTextKey(rec) -> str:
+    if rec.entryId == "AERATE":
+        sources = getattr(rec, "sources", ())
+        kinds = {str(getattr(s, "sourceType", "")) for s in sources}
+        hasPred = any("prediction" in k for k in kinds)
+        hasEp = any("episode" in k for k in kinds)
+        if hasPred and hasEp:
+            return "AERATE.both"
+        if hasEp:
+            return "AERATE.diagnostic"
+        return "AERATE.prediction"
+    if rec.entryId == "WATER_CHANGE":
+        return "WATER_CHANGE.episode.urgent" if str(rec.urgency.value) == "urgent" else "WATER_CHANGE.episode.nonUrgent"
+    if rec.entryId == "ADD_ALKALINITY":
+        return "ADD_ALKALINITY.detector"
+    return rec.entryId
+
+
 def renderRecommendation(draft, pond, cfg=DEFAULT_CONFIG) -> RenderedText:
+    if not hasattr(draft, "facts") and hasattr(draft, "title"):
+        # A stored Recommendation already carries its rendered text (set at reconcile time).
+        return RenderedText(title=draft.title, reason=draft.reason,
+                            basedOn=draft.basedOn, guidance=draft.guidance)
+    if not hasattr(draft, "facts"):
+        draft = _recommendationToDraft(draft)
     tz = pond.timezone
     facts = dict(draft.facts)
     # times to local strings
@@ -210,11 +265,29 @@ def renderRecommendation(draft, pond, cfg=DEFAULT_CONFIG) -> RenderedText:
         facts["diagFragment"] = T.BASED_ON_FRAGMENTS.get("doLow", "").format(**facts)
     if "predFragment" not in facts:
         facts["predFragment"] = T.BASED_ON_FRAGMENTS.get("doRisk", "").format(**facts)
+    # Defaults for episode-based templates when rendering from a stored Recommendation
+    facts.setdefault("onsetAt", "")
+    facts.setdefault("lastSeverity", "Stress")
+    facts.setdefault("paramName", "NH3")
+    facts.setdefault("speciesNoun", "Ammonia")
+    facts.setdefault("horizonHours", "12")
+    facts.setdefault("hitDays", "0")
+    facts.setdefault("windowDays", "3")
+    facts.setdefault("maxSwing", "0.0")
+    facts.setdefault("doLastSeverity", "Stress")
+    facts.setdefault("doOnsetAt", "")
+    facts.setdefault("nightsChecked", "0")
+    facts.setdefault("hitNights", None)
+    facts.setdefault("riskStart", "")
+    facts.setdefault("riskEnd", "")
 
-    template = T.RECOMMENDATION_TEMPLATES[draft.textKey]
+    textKey = draft.textKey
+    if textKey == "WATER_CHANGE.episode":
+        textKey = f"WATER_CHANGE.episode.{'urgent' if getattr(draft, 'urgency', None) and str(draft.urgency.value) == 'urgent' else 'nonUrgent'}"
+    template = T.RECOMMENDATION_TEMPLATES[textKey]
     title = template[0].format_map(facts)
     reason = template[1].format_map(facts)
-    basedOn = template[2].format_map(facts)
+    basedOn = template[2].format_map(facts).rstrip(" ·")
     guidance = tuple(g.format_map(facts) for g in template[3])
     return RenderedText(title=title, reason=reason, basedOn=basedOn, guidance=guidance)
 
@@ -259,8 +332,9 @@ def renderPrediction(pred, cfg=DEFAULT_CONFIG):
     if ruleId == "PRED_NH3_RISE":
         headline = headline_tpl.format(hours=cfg.nh3RiseHorizonHours)
     elif ruleId in ("PRED_DO_NIGHT", "PRED_DO_REPEAT"):
-        start = _local(pred.riskStart, "UTC") if pred.riskStart else ""
-        end = _local(pred.riskEnd, "UTC") if pred.riskEnd else ""
+        tz = getattr(getattr(pred, "pondSnapshot", None), "timezone", "UTC")
+        start = _local(pred.riskStart, tz) if pred.riskStart else ""
+        end = _local(pred.riskEnd, tz) if pred.riskEnd else ""
         headline = headline_tpl.format(start=start, end=end)
     else:
         headline = headline_tpl
