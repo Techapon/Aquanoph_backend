@@ -6,7 +6,7 @@ SeverityReportView carries (parameter, time, value, zone, direction, severity).
 """
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
 from identity.parameters.pond_parameter_enum import PondParameters

@@ -36,10 +36,15 @@ class ActivityOp:
 
 def changedOnly(newObjs: tuple[Any, ...], existingById: Mapping[str, Any]) -> tuple[Any, ...]:
     """Keep only objects that do not exist or are not equal to the existing version."""
-    return tuple(
-        obj for obj in newObjs
-        if getattr(obj, "id", None) not in existingById or existingById[getattr(obj, "id", None)] != obj
-    )
+    result: list[Any] = []
+    for obj in newObjs:
+        objId = getattr(obj, "id", None)
+        if objId is None:
+            result.append(obj)
+            continue
+        if objId not in existingById or existingById[objId] != obj:  # type: ignore[index]
+            result.append(obj)
+    return tuple(result)
 
 
 @dataclass(frozen=True)
@@ -79,13 +84,11 @@ class ChangeSet:
     def merge(self, other: "ChangeSet") -> "ChangeSet":
         """Merge two ChangeSets; later (other) wins on id collision."""
         def _mergeById(a: tuple, b: tuple) -> tuple:
-            combined: dict[str, Any] = {}
+            combined: dict[Any, Any] = {}
             for obj in (*a, *b):
                 objId = getattr(obj, "id", None)
-                if objId is not None:
-                    combined[objId] = obj
-                else:
-                    combined[id(obj)] = obj
+                key: Any = objId if objId is not None else id(obj)
+                combined[key] = obj
             return tuple(combined.values())
 
         return ChangeSet(

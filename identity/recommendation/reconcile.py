@@ -155,7 +155,7 @@ def reconcile(snapshot, signals, now, trigger, renderer, cfg=DEFAULT_CONFIG) -> 
         text = renderer(draft, snapshot.pond)
         newRec = _newRec(snapshot, draft, now, text)
         updated.append(newRec)
-        byId[newRec.id] = newRec
+        byId[newRec.id] = newRec  # type: ignore[index]
         if draft.urgency == Urgency.urgent:
             notifications.append(Notification(kind="urgentRecCreated", targetType="recommendation", targetId=newRec.id,
                                                reasonKey="rec.created.urgent",

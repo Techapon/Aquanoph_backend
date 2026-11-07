@@ -21,6 +21,7 @@ from tests.support.factories import makeActivity, makePond, makeSnapshot, makeVi
 from tests.support.store_sim import StoreSim
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
+from identity.units.threshold_units.threshold_level.threshold_direction import ThresholdDirection
 
 
 class ScenarioDriver:
@@ -33,10 +34,10 @@ class ScenarioDriver:
     def snapshot(self) -> PondSnapshot:
         return self.sim.snapshot()
 
-    def addReadings(self, parameter: PondParameters, rows: list[tuple[str, float, object, object, object]]):
+    def addReadings(self, parameter: PondParameters, rows: list[tuple[str, float, ThresholdLevelType, SeverityLevelType, ThresholdDirection | None]]):
         views = list(self.sim.snapshot().severityReports)
         for local, value, zone, severity, direction in rows:
-            views.append(makeView(parameter, t(local, self.tz), value=value, zone=zone, severity=severity, direction=direction))
+            views.append(makeView(parameter, t(local, self.tz), value=value, zone=zone, severity=severity, direction=direction))  # type: ignore[arg-type]
         from dataclasses import replace
         self.sim = StoreSim(replace(self.sim.snapshot(), severityReports=tuple(views)))
         # rebuild sim internal state while preserving snapshot
