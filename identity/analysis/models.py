@@ -23,7 +23,6 @@ class ActivityType(str, Enum):
     lime = "lime"
     probiotic = "probiotic"
     waterChange = "waterChange"
-    other = "other"
 
 
 class ActivityStatus(str, Enum):

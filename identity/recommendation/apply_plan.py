@@ -159,10 +159,10 @@ def _alkalinityApply(rec, snapshot, now, chosenTime, confirmed, cfg):
 
 def _genericApply(rec, snapshot, now, chosenTime, confirmed, cfg):
     at = now if rec.urgency == Urgency.urgent else chosenTime
-    actType = rec.proposedActivities[0].type if rec.proposedActivities else ActivityType.other
-    qty = rec.proposedActivities[0].quantityKg if rec.proposedActivities else None
-    frac = rec.proposedActivities[0].fraction if rec.proposedActivities else None
-    return _singleActivityApply(rec, snapshot, now, at, actType, qty, frac, confirmed)
+    if not rec.proposedActivities:
+        raise ValueError(f"rec {rec.id}: generic apply requires proposedActivities")
+    stored = rec.proposedActivities[0]
+    return _singleActivityApply(rec, snapshot, now, at, stored.type, stored.quantityKg, stored.fraction, confirmed)
 
 
 def _singleActivityApply(rec, snapshot, now, at, actType, qty, frac, confirmed):

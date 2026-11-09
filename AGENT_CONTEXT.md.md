@@ -8,8 +8,9 @@ Severity engine already exists and is **not** to be changed (except Bug 1 in Pha
 
 ## 2. Scope
 - IN: pure Python logic, dataclasses, config, English text templates, tests.
-- OUT (do not build): database, ORM, queue/worker, HTTP, push notifications, Thai text, kNN, severity engine changes.
-- Python 3.11, stdlib + pytest only. No new dependencies.
+- OUT (Phases 0–7): database, ORM, queue/worker, HTTP, push notifications, Thai text, kNN, severity engine changes. Phase 8 (DB adapter, worker loop, HTTP API) is outside the logic scope and specified in `docs/BACKEND_BUILD_ROADMAP.MD`.
+- Python target = 3.11 (dev machine may run 3.14; deploy pins 3.11.x via `runtime.txt`). No syntax newer than 3.11.
+- Phases 0–7: stdlib + pytest only, no new dependencies. **Phase 8 exception (decided):** `asyncpg`, `fastapi`, `uvicorn`, `pyjwt` allowed — real DB connection and real multi-statement transaction, which PostgREST of supabase-py cannot do. See `docs/CONFIG_RESOLUTION_v1.md` ข้อ 9, 10, 14.
 
 ## 3. Architecture contract
 ```
@@ -46,7 +47,7 @@ Phase files are meant to be self-sufficient; do not read Thai docs unless needed
 - Parameters: DO, NH3, NO2_N, pH, Temperature, Salinity. pH and Temperature are Range thresholds (direction low/high); others are Level thresholds.
 - Zone order: Optimal < Stress < HighRisk < Critical (threshold zone).
 - Severity order: Optimal < Stress < ElevatedRisk < Critical (engine output). Recovery Hold = zone Optimal but severity Stress.
-- Activity types: feeding(point, kg), aeration(start..end), alkalinity/lime/probiotic(point, kg), water_change(point, fraction of pond), other. Status: pending/done/skipped. Source: user/recommendation.
+- Activity types: feeding(point, kg), aeration(start..end), alkalinity/lime/probiotic(point, kg), water_change(point, fraction of pond). Status: pending/done/skipped. Source: user/recommendation. Python↔DB enum names: `enum_map.py` is the single source of truth (Phase 8).
 - Episode: continuous stretch where a parameter's (direction-aware) zone is not Optimal. Unit of Diagnostic.
 - Signal: normalized input to Recommendation, from episode / prediction / detector.
 - Recommendation status: pending, snoozed, applied, dismissed, expired. Urgency: urgent (fixed time on apply) / non_urgent (user picks time in window).
@@ -90,7 +91,7 @@ Phase files are meant to be self-sufficient; do not read Thai docs unless needed
    - **Deviations**: anything differing from the phase file, and why
    - **Questions**: spec ambiguities found (max 5, each with your proposed default)
 
-**STOP and ask (do not guess)** when: a rule is ambiguous and not covered by section 8; a test from the spec cannot pass without changing a spec rule; you need to change the severity engine beyond Bug 1; you need a new dependency; an existing test breaks and the cause isn't your change.
+**STOP and ask (do not guess)** when: a rule is ambiguous and not covered by section 8; a test from the spec cannot pass without changing a spec rule; you need to change the severity engine beyond Bug 1; you need a new dependency (exception: the Phase 8 list in section 2 is pre-approved); an existing test breaks and the cause isn't your change.
 
 ## 10. Test-case map (v0.3 §11) -> phase
 T1,T1b,T6(diag part) -> Phase 2 | T7(detector part) -> Phase 3 | T4,T9,T11,T12,T15,T16 -> Phase 4 (prediction part) | T2,T3,T5,T7,T8,T10,T13,T14,T18 -> Phase 5 | Case 1-3 text -> Phase 6 | T6(full),T17, all scenarios, idempotency -> Phase 7.

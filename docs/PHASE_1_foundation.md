@@ -46,7 +46,7 @@ alkalinityWindowDays=3; minAerationSegmentMinutes=15
 `validate()` raises `ValueError` on nonsense (negative values, hours outside 0–24, coverage outside 0–1, unknown severity name). Call it in `__post_init__`. Severity names are strings; use `severityRank` (Phase 0) to compare.
 
 ## 2. `models.py` (all frozen dataclasses; tuples not lists)
-Enums: `ActivityType{feeding,aeration,alkalinity,lime,probiotic,waterChange,other}`, `ActivityStatus{pending,done,skipped}`, `ActivitySource{user,recommendation}`, `Urgency{urgent,nonUrgent}`, `RecStatus{pending,snoozed,applied,dismissed,expired}`, `ApplyMode{fixed,pickWindow}`, `PredStatus{active,ended}`, `DiagStatus{open,closed}`, `SignalSource{episode,prediction,detector}`, `TriggerKind{reading,activityEvent,pondEdit,tick}`.
+Enums: `ActivityType{feeding,aeration,alkalinity,lime,probiotic,waterChange}` (6 kinds — `other` removed per CONFIG_RESOLUTION ข้อ 4), `ActivityStatus{pending,done,skipped}`, `ActivitySource{user,recommendation}`, `Urgency{urgent,nonUrgent}`, `RecStatus{pending,snoozed,applied,dismissed,expired}`, `ApplyMode{fixed,pickWindow}`, `PredStatus{active,ended}`, `DiagStatus{open,closed}`, `SignalSource{episode,prediction,detector}`, `TriggerKind{reading,activityEvent,pondEdit,tick}`.
 
 ```python
 Activity(id, pondId, type, status, startTime, endTime|None, quantityKg|None, fraction|None,
