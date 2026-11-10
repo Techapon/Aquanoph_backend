@@ -52,16 +52,33 @@ async def pool() -> asyncpg.Pool:
     return _pool
 
 
+_jwk_client = None
+
+
+def _get_jwk_client():
+    # Supabase ใช้ ES256 (asymmetric) — ตรวจผ่าน JWKS endpoint ของ project
+    # kid หมุนได้ → PyJWKClient cache + refresh เมื่อไม่รู้จัก kid
+    global _jwk_client
+    if _jwk_client is None:
+        from jwt import PyJWKClient
+        url = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+        if not url:
+            raise RuntimeError("SUPABASE_URL not set")
+        _jwk_client = PyJWKClient(f"{url}/auth/v1/.well-known/jwks.json")
+    return _jwk_client
+
+
 def _verify_jwt(authorization: str = Header(...)) -> dict:
     import jwt
 
-    secret = os.environ.get("SUPABASE_JWT_SECRET")
-    if not secret:
-        raise RuntimeError("SUPABASE_JWT_SECRET not set")
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="missing bearer token")
+    token = authorization[7:]
     try:
-        return jwt.decode(authorization[7:], secret, algorithms=["HS256"], audience="authenticated")
+        signing_key = _get_jwk_client().get_signing_key_from_jwt(token).key
+        return jwt.decode(token, signing_key, algorithms=["ES256", "HS256"], audience="authenticated")
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="invalid token")
 
