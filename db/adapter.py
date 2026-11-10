@@ -473,11 +473,30 @@ def _row_to_activity(r: asyncpg.Record) -> Activity:
     )
 
 
+# asyncpg คืน jsonb เป็น str — parse ก่อนใช้ทุกที่ (§9: adapter <-> DB type map)
+def _as_list(v: Any) -> list:
+    import json
+    if v is None:
+        return []
+    if isinstance(v, str):
+        return json.loads(v) if v else []
+    return list(v)
+
+
+def _as_dict(v: Any) -> dict:
+    import json
+    if v is None:
+        return {}
+    if isinstance(v, str):
+        return json.loads(v) if v else {}
+    return dict(v)
+
+
 def _row_to_diag(r: asyncpg.Record) -> DiagnosticReport:
     from identity.analysis.models import Cause
     causes = tuple(
         Cause(ruleId=c.get("rule_id", ""), facts=dict(c.get("facts", {})))
-        for c in (r["causes"] or [])
+        for c in _as_list(r["causes"])
     )
     snap = _snapshot_from_json(r["pond_snapshot"])
     return DiagnosticReport(
@@ -509,10 +528,10 @@ def _row_to_pred(r: asyncpg.Record) -> Prediction:
         expectedZone=EM.ZONE_FROM_DB[r["expected_zone"]],
         riskStart=_req_naive(r["risk_start"], "predictions.risk_start"),
         riskEnd=_req_naive(r["risk_end"], "predictions.risk_end"),
-        met=tuple(r["met"] or []),
+        met=tuple(_as_list(r["met"])),
         status=EM.PRED_STATUS_FROM_DB[r["status"]],
         endReason=r["end_reason"],
-        evidence=dict(r["evidence"] or {}),
+        evidence=_as_dict(r["evidence"]),
         pondSnapshot=snap,
         createdAt=_req_naive(r["created_at"], "predictions.created_at"),
         revisedAt=_to_naive(r["revised_at"]),
@@ -537,7 +556,7 @@ def _row_to_rec(r: asyncpg.Record, pond_id: str) -> Recommendation:
             quantityKg=p.get("quantityKg"),
             fraction=p.get("fraction"),
         )
-        for p in (r["proposed_activities"] or [])
+        for p in _as_list(r["proposed_activities"])
     )
     return Recommendation(
         id=r["id"],
