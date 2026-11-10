@@ -105,17 +105,28 @@ async def _one_job() -> str:
             user_id = str(prows[0]["user_id"]) if prows else ""
             order = {"activityEvent": 0, "pondEdit": 1, "reading": 2, "tick": 3}
             kinds = sorted(job["kinds"] or ["tick"], key=lambda k: order.get(k, 9))
+            wrote = False
+            t_from = job["activity_t_from"]
             for k in kinds:
-                trig = Trigger(kind=TriggerKind(k), tFrom=job["activity_t_from"])
+                trig = Trigger(kind=TriggerKind(k), tFrom=t_from)
                 cs = run_analysis(snap, trig, now)
-                if not cs.isEmpty():
-                    await apply_changeset(
-                        conn, str(job["pond_id"]), cs, versions, now,
-                        snap.pond.timezone, user_id, job["id"], engine_version="v1",
-                    )
-                    # refresh versions หลังเขียน (กัน StaleSnapshot ปลอมรอบถัดไปใน job เดียวกัน)
-                    snap2 = await load_snapshot(conn, str(job["pond_id"]), now)
-                    versions = {r.id: r.updatedAt for r in snap2.recommendations}
+                if cs.isEmpty():
+                    continue
+                wrote = True
+                await apply_changeset(
+                    conn, str(job["pond_id"]), cs, versions, now,
+                    snap.pond.timezone, user_id, job["id"], engine_version="v1",
+                )
+                # refresh versions หลังเขียน (กัน StaleSnapshot ปลอมรอบถัดไปใน job เดียวกัน)
+                snap = await load_snapshot(conn, str(job["pond_id"]), now)
+                versions = {r.id: r.updatedAt for r in snap.recommendations}
+            if not wrote:
+                # ChangeSet ว่างทุก kind — ปิด job + log run (ไม่งั้นค้าง running ตลอดกาล)
+                from identity.analysis.changeset import ChangeSet
+                await apply_changeset(
+                    conn, str(job["pond_id"]), ChangeSet(), versions, now,
+                    snap.pond.timezone, user_id, job["id"], engine_version="v1",
+                )
         return "done"
     except StaleSnapshot:
         async with (await pool()).acquire() as conn:
