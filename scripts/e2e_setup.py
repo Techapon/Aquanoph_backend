@@ -11,6 +11,7 @@ import sys
 import time
 import urllib.request
 import urllib.error
+from typing import Any
 
 # ---- load .env ----
 with open(os.path.join(os.path.dirname(__file__), "..", ".env"), encoding="utf-8") as f:
@@ -29,8 +30,8 @@ EMAIL = "e2e-pond@test.com"
 DEV = "dev-e2e"
 
 
-def rest(method, path, body=None, apikey=None):
-    """PostgREST / Auth admin call over HTTPS."""
+def rest(method: str, path: str, body: Any = None, apikey: str | None = None) -> tuple[int, Any]:
+    """PostgREST / Auth admin call over HTTPS. คืน (status, parsed json)."""
     req = urllib.request.Request(
         URL + path,
         data=json.dumps(body).encode() if body is not None else None,
@@ -118,6 +119,7 @@ def main() -> int:
         print(f"[5] wake fail: {e}")
 
     # 6. poll jobs จนจบ (timeout 120s)
+    jobs: list[dict[str, Any]] = []
     for i in range(24):
         st, jobs = rest("GET",
             f"/rest/v1/analysis_jobs?pond_id=eq.{pond_id}&select=id,status,kinds,attempts,last_error&order=created_at.desc&limit=3")
