@@ -82,16 +82,8 @@ async def _one_job() -> str:
     p = await pool()
     async with p.acquire() as conn:
         async with conn.transaction():
-            # ปลดล็อก running ที่ค้างเกิน heartbeat (worker เดิมตาย/build แทน)
-            # ไม่งั้น blocked pond นั้น ~20 ชม. จนกว่า C3 รัน 02:00 UTC
-            await conn.execute(
-                """
-                update analysis_jobs
-                set status='queued', locked_at=null, locked_by=null,
-                    attempts=attempts+1, run_after=now()
-                where status='running' and locked_at < now() - interval '10 minutes'
-                """
-            )
+            # ปลดล็อก running ค้าง — merge เข้า queued ถ้ามีอยู่แล้ว (กัน queued_uniq)
+            await conn.execute("select requeue_stale_jobs()")
             # claim atomic: ข้าม pond ที่มี running อยู่แล้ว (unique ต่อ pond)
             job = await conn.fetchrow(
                 """

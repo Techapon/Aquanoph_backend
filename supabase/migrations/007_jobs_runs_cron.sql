@@ -67,22 +67,48 @@ end;
 $$;
 
 -- C2: cron รายวัน renew_activity_series (สร้างใน 006)
+-- ปลดล็อก running ค้าง — merge เข้า queued ถ้ามีอยู่แล้ว (กัน queued_uniq)
+-- (bugfix: UPDATE ตรง ๆ running→queued โดน partial unique ถ้า pond มี queued อยู่แล้ว)
+create or replace function requeue_stale_jobs() returns void
+language plpgsql as $$
+declare
+  r record;
+begin
+  for r in
+    select id, pond_id, kinds, activity_t_from
+    from analysis_jobs
+    where status = 'running' and locked_at < now() - interval '10 minutes'
+    for update
+  loop
+    if exists (
+      select 1 from analysis_jobs
+      where pond_id = r.pond_id and status = 'queued' and id <> r.id
+    ) then
+      update analysis_jobs q set
+        kinds = (select array_agg(distinct k) from unnest(q.kinds || r.kinds) as k),
+        activity_t_from = least(q.activity_t_from, r.activity_t_from)
+      where q.pond_id = r.pond_id and q.status = 'queued';
+      update analysis_jobs
+      set status = 'failed', last_error = 'stale heartbeat: merged into queued job',
+          locked_at = null, finished_at = now()
+      where id = r.id;
+    else
+      update analysis_jobs
+      set status = 'queued', locked_at = null, locked_by = null,
+          attempts = attempts + 1, run_after = now()
+      where id = r.id;
+    end if;
+  end loop;
+end;
+$$;
+
 -- C3: cron รายวัน cleanup analysis_jobs done เกิน 7 วัน + ปลด lock งาน running ค้าง
 create or replace function cron_cleanup_jobs() returns void
 language plpgsql as $$
 begin
   delete from analysis_jobs
   where status = 'done' and finished_at < now() - interval '7 days';
-
-  -- ปลด lock งาน running ที่ heartbeat เกิน 10 นาที (worker ตายไป)
-  update analysis_jobs
-  set status = 'queued',
-      locked_at = null,
-      locked_by = null,
-      attempts = attempts + 1,
-      run_after = now()
-  where status = 'running'
-    and locked_at < now() - interval '10 minutes';
+  perform requeue_stale_jobs();
 end;
 $$;
 
