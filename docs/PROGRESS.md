@@ -11,6 +11,8 @@
 | Phase 5 | Done | 29 added; 214 passed | Recommendation: catalog (AERATE/WATER_CHANGE/ADD_ALKALINITY), reconcile+blocked, buildApplyPlan (D15/D17), snooze/dismiss |
 | Phase 6 | Done | 10 added; 224 passed | English text: templates keyed by id, renderers (Case 1/2/3 golden), no Thai, Rule 5 clean |
 | Phase 7 | Done | 27 added; 251 passed | Orchestrator run_analysis, activity-edit validation (T17/O8), scenario driver, T1–T18 + Cases 1–3 + invariants, TEST_MAP/ADAPTER_NOTES |
+| Phase 8 (migration 001–010) | Done | SQL live test T1–T6 ALL PASS | ทุก migration รันบน Supabase จริง + RLS 20 policies + views + realtime; bugfix 4 ตัวจาก live test (target_type, wrong set_updated_at triggers, NULL hole check, forbid_mutation return) |
+| Phase 8 (adapter + API + deploy) | Done | unit 7 + suite 245 + E2E PASS | db/adapter.py (load_snapshot/apply_changeset/StaleSnapshot), main.py FastAPI + worker, Render deploy, E2E: readings→trigger→worker→done+analysis_runs; bugfix 3 ตัว (empty changeset job stuck, running/queued race, stale requeue merge) |
 
 ## Decisions made by agent & owner
 - **F-01 Approved:** Added `value: float | None = None` to `AnalysisReportModel` and passed `self.valueNow` from `ParameterModel.buildAnalysisReport()`. Removed unneeded `description` and `guidance` properties from `AnalysisReportModel`.
