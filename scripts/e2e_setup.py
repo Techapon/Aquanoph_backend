@@ -99,15 +99,18 @@ def main() -> int:
         pond_id = created[0]["id"]
         print(f"[3] created pond {pond_id}")
 
-    # 4. sensor readings — 2 แถว (ค่า realistic, DO ต่ำตอนกลางคืน)
-    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    st, _ = rest("POST", "/rest/v1/sensor_readings", [
-        {"device_id": DEV, "measured_at": now, "DO": 2.1, "pH": 6.8,
-         "NH3": 0.9, "NO2": 0.2, "temperature": 31.5, "salinity": 0.1},
-        {"device_id": DEV, "measured_at": now, "DO": 2.0, "pH": 6.7,
-         "NH3": 1.1, "NO2": 0.3, "temperature": 31.6, "salinity": 0.1},
-    ])
-    print(f"[4] readings insert: {st}")
+    # 4. sensor readings — 2 แถว timestamp ต่างกัน (unique (device_id, measured_at))
+    # measured_at ต้องมากกว่า cursor (last_reading_at) ถ้าเคยรันแล้ว — ใช้เวลาปัจจุบัน
+    t0 = int(time.time())
+    rows = []
+    for i, (do, nh3) in enumerate([(2.1, 0.9), (2.0, 1.1)]):
+        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0 - (i + 1) * 60))
+        rows.append({"device_id": DEV, "measured_at": ts, "DO": do, "pH": 6.8,
+                     "NH3": nh3, "NO2": 0.2, "temperature": 31.5, "salinity": 0.1})
+    st, body = rest("POST", "/rest/v1/sensor_readings", rows)
+    print(f"[4] readings insert: {st} {body if st >= 400 else ''}")
+    # jobs เก่ากว่า readings ไม่เกี่ยวกับรอบนี้
+    t0_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0 - 120))
 
     # 5. wake worker ให้ poll เร็ว
     try:
@@ -118,11 +121,12 @@ def main() -> int:
     except Exception as e:
         print(f"[5] wake fail: {e}")
 
-    # 6. poll jobs จนจบ (timeout 120s)
+    # 6. poll jobs ที่เกิดจาก readings รอบนี้เท่านั้น (timeout 180s)
     jobs: list[dict[str, Any]] = []
-    for i in range(24):
+    for i in range(36):
         st, jobs = rest("GET",
-            f"/rest/v1/analysis_jobs?pond_id=eq.{pond_id}&select=id,status,kinds,attempts,last_error&order=created_at.desc&limit=3")
+            f"/rest/v1/analysis_jobs?pond_id=eq.{pond_id}&created_at=gte.{t0_iso}"
+            f"&select=id,status,kinds,attempts,last_error,created_at&order=created_at.desc")
         jobs = jobs if isinstance(jobs, list) else []
         active = [j for j in jobs if j["status"] in ("queued", "running")]
         if jobs and not active:

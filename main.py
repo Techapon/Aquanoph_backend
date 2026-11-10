@@ -145,11 +145,15 @@ async def _one_job() -> str:
 
 
 async def _worker_loop() -> None:
+    import logging
+    log = logging.getLogger("worker")
     while True:
         try:
-            await _one_job()
-        except Exception:  # noqa: BLE001 — worker ห้ามตาย
-            pass
+            result = await _one_job()
+            if result not in ("idle", "done"):
+                log.warning("job result: %s", result)
+        except Exception as e:  # noqa: BLE001 — worker ห้ามตาย แต่ต้องเห็นสาเหตุ
+            log.exception("worker loop error: %s", e)
         try:
             await asyncio.wait_for(_wake.wait(), timeout=7)
             _wake.clear()
