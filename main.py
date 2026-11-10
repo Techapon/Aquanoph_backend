@@ -48,7 +48,9 @@ async def pool() -> asyncpg.Pool:
         dsn = os.environ.get("SUPABASE_DB_URL")
         if not dsn:
             raise RuntimeError("SUPABASE_DB_URL not set")
-        _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=5)
+        # statement_cache_size=0: Supabase transaction pooler ไม่เก็บ prepared
+        # statement ข้าม transaction → asyncpg cache ชื่อ = "does not exist"
+        _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=5, statement_cache_size=0)
     return _pool
 
 
