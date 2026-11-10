@@ -81,18 +81,35 @@ async def _one_job() -> str:
     """Poll 1 queued job, run, apply. Returns 'idle' | 'done' | 'stale' | 'error'."""
     p = await pool()
     async with p.acquire() as conn:
-        job = await conn.fetchrow(
-            """
-            update analysis_jobs set status='running', locked_at=now(), started_at=coalesce(started_at, now()), attempts=attempts+1
-            where id = (
-              select id from analysis_jobs
-              where status='queued' and run_after <= now()
-              order by created_at asc limit 1
-              for update skip locked
+        async with conn.transaction():
+            # ปลดล็อก running ที่ค้างเกิน heartbeat (worker เดิมตาย/build แทน)
+            # ไม่งั้น blocked pond นั้น ~20 ชม. จนกว่า C3 รัน 02:00 UTC
+            await conn.execute(
+                """
+                update analysis_jobs
+                set status='queued', locked_at=null, locked_by=null,
+                    attempts=attempts+1, run_after=now()
+                where status='running' and locked_at < now() - interval '10 minutes'
+                """
             )
-            returning id, pond_id, kinds, activity_t_from
-            """
-        )
+            # claim atomic: ข้าม pond ที่มี running อยู่แล้ว (unique ต่อ pond)
+            job = await conn.fetchrow(
+                """
+                update analysis_jobs set status='running', locked_at=now(), locked_by='worker',
+                      started_at=coalesce(started_at, now()), attempts=attempts+1
+                where id = (
+                  select id from analysis_jobs
+                  where status='queued' and run_after <= now()
+                    and not exists (
+                      select 1 from analysis_jobs r
+                      where r.pond_id = analysis_jobs.pond_id and r.status='running'
+                    )
+                  order by created_at asc limit 1
+                  for update skip locked
+                )
+                returning id, pond_id, kinds, activity_t_from
+                """
+            )
     if job is None:
         return "idle"
     try:
