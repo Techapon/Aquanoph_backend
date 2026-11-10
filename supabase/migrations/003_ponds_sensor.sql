@@ -146,7 +146,11 @@ begin
   if current_user not in ('postgres', 'service_role', 'supabase_admin') then
     raise exception '%: table is insert-only (frozen fact)', tg_table_name;
   end if;
-  return null;
+  -- BEFORE trigger: คืน row เพื่อให้ operation ต่อ (return null = ยกเลิกเงียบ!)
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
 $$;
 create trigger pond_states_no_update_delete

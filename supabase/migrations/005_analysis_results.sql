@@ -22,9 +22,7 @@ create table diagnostic_reports (
 );
 create index diagnostic_recent_idx on diagnostic_reports (pond_id, onset_at desc);
 create index diagnostic_status_idx on diagnostic_reports (pond_id, parameter, status);
-create trigger diagnostic_reports_set_updated_at
-  before update on diagnostic_reports
-  for each row execute function set_updated_at();
+-- ไม่มี updated_at ใน diagnostic_reports/predictions (§3.6) — revised_at ทำหน้าที่แทน
 
 create table predictions (
   id text primary key,  -- deterministic: pred:...
@@ -49,9 +47,6 @@ create table predictions (
 -- Phase 4: active ได้ครั้งละ 1 ต่อ rule ต่อบ่อ
 create unique index predictions_active_uniq on predictions (pond_id, rule_id) where status = 'active';
 create index predictions_status_idx on predictions (pond_id, status);
-create trigger predictions_set_updated_at
-  before update on predictions
-  for each row execute function set_updated_at();
 
 create table recommendations (
   id text primary key,  -- deterministic: rec:...

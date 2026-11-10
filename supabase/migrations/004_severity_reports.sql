@@ -78,7 +78,7 @@ begin
     new.pond_id,
     owner_id,
     'severityCritical',
-    'severity_report',
+    'severity',
     new.id::text,
     'severity.critical.entered',
     jsonb_build_object(

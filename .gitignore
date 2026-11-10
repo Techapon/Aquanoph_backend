@@ -2,6 +2,12 @@
 .vscode
 .mcp.json
 
+# Secrets
+.env
+
+# Local tooling state
+.claude/
+
 # Python cache
 __pycache__/
 *.py[cod]

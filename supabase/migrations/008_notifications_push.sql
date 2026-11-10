@@ -23,9 +23,10 @@ create table notifications (
   read_at timestamptz,
   created_at timestamptz not null default now(),
   -- push_eligible ได้เฉพาะ 3 เคส (§3.7)
+  -- is not distinct from: กัน NULL hole (= ตอน reason_key null ได้ UNKNOWN แล้ว check ผ่าน)
   constraint push_eligible_only check (
     not push_eligible or kind in ('severityCritical', 'urgentRecCreated')
-    or (kind = 'recChanged' and reason_key = 'rec.changed.urgency_raised')
+    or (kind = 'recChanged' and reason_key is not distinct from 'rec.changed.urgency_raised')
   )
 );
 create index notifications_user_idx on notifications (user_id, created_at desc);
