@@ -12,6 +12,11 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from db.adapter import StaleSnapshot, apply_changeset, load_snapshot
 from services.run_analysis import run_analysis
 
+import logging
+# root handler: ทำให้ logger ของ worker (severity sweep/job result) ขึ้น stderr → Render logs
+# ไม่เช่นั้น uvicorn config แค่ logger ตัวเอง — INFO ฝั่ง worker เงียบ
+logging.basicConfig(level=logging.INFO)
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     task = asyncio.create_task(_worker_loop())
