@@ -268,7 +268,7 @@ async def apply(rec_id: str, body: dict, claims: dict = Depends(_verify_jwt)):
             await apply_changeset(
                 conn, str(row["pond_id"]), res.changeSet, versions, now,
                 snap.pond.timezone, str(own["user_id"]), None, engine_version="v1",
-            )
+            ) 
         except StaleSnapshot:
             raise HTTPException(status_code=409, detail="stale snapshot, retry")
         # enqueue activityEvent(t_from = start ของ activity ใหม่) (§7 ข้อ 3)
