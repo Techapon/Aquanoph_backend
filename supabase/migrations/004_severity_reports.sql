@@ -13,8 +13,10 @@ create table severity_reports (
   severity severity_level not null,
   -- Recovery Hold: zone optimal แต่ severity ยัง stress
   recovering boolean generated always as (zone = 'optimal' and severity = 'stress') stored,
-  symptom text,
-  reason text,
+  -- 4 fields ของ SeverityDescriptionModel (ทาง A: ชื่อตรง model — DB_DESIGN §3.4)
+  description text not null,
+  detail text,
+  append_des text,
   guidance text,
   engine_version text not null,
   reading_id bigint references sensor_readings (id),

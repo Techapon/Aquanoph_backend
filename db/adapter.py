@@ -232,6 +232,145 @@ async def load_snapshot(
     )
 
 
+# ============================ severity runner DB helpers (§7 ขั้น 1) ============================
+
+async def load_pond_engine_meta(conn: Conn, pond_id: str) -> dict | None:
+    """ค่าที่ severity engine ต้องใช้: weight/density, pond_state ล่าสุด, cursor, device."""
+    row = await conn.fetchrow(
+        """
+        select p.avg_weight_g, p.density_kg_m3, p.analysis_start_at, p.device_id,
+               s.id as pond_state_id,
+               (select last_reading_at from pond_analysis_state where pond_id = p.id) as cursor
+        from ponds p
+        left join pond_states s on s.id = (
+          select id from pond_states where pond_id = p.id order by effective_from desc limit 1
+        )
+        where p.id = $1
+        """,
+        pond_id,
+    )
+    if row is None or row["pond_state_id"] is None:
+        return None
+    return {
+        "weight_g": float(row["avg_weight_g"]),
+        "density_kg_m3": float(row["density_kg_m3"]),
+        "analysis_start": row["analysis_start_at"],
+        "device_id": row["device_id"],
+        "pond_state_id": str(row["pond_state_id"]),
+        "cursor": row["cursor"],  # aware | None
+    }
+
+
+async def load_severity_history(
+    conn: Conn, pond_id: str, now: datetime, cfg: AnalysisConfig = DEFAULT_CONFIG,
+):
+    """severity_reports ใน horizon → PondParametersHistoryModel (engine อ่านครบทุก field)."""
+    from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
+    from identity.parameters.pond_parameter_history_model import PondParametersHistoryModel
+    from identity.units.severity_units.severity.severity_model import SeverityModel
+    from identity.units.severity_units.severity_description.severity_description_model import (
+        SeverityDescriptionModel,
+    )
+
+    now_aw = _to_aware(now)
+    rows = await conn.fetch(
+        """
+        select parameter, measured_at, value, zone, direction, severity,
+               description, detail, append_des, guidance
+        from severity_reports
+        where pond_id = $1
+          and measured_at >= greatest(
+                (select analysis_start_at from ponds where id = $1),
+                $2::timestamptz)
+        order by measured_at asc
+        """,
+        pond_id,
+        now_aw - timedelta(days=cfg.historyHorizonDays),
+    )
+    history = PondParametersHistoryModel()
+    by_attr = {  # db enum label → field ของ history
+        "DO": "do", "pH": "pH", "Temperature": "tem",
+        "NH3": "nh3", "NO2_N": "no2_n", "Salinity": "salinity",
+    }
+    for r in rows:
+        des = SeverityDescriptionModel(
+            des=r["description"] or "",
+            detail=r["detail"] or "",
+            guid=r["guidance"] or "",
+            append=r["append_des"],
+        )
+        report = AnalysisReportModel(
+            dateTime=_req_naive(r["measured_at"], "severity_reports.measured_at"),
+            parameter=EM.PARAMETER_FROM_DB[r["parameter"]],
+            thresholdStatus=EM.ZONE_FROM_DB[r["zone"]],
+            severity=SeverityModel(
+                severityLevel=EM.SEVERITY_FROM_DB[r["severity"]],
+                severityDes=des,
+            ),
+            thresholdDirection=(
+                EM.DIRECTION_FROM_DB[r["direction"]] if r["direction"] else None
+            ),
+            value=float(r["value"]) if r["value"] is not None else None,
+        )
+        getattr(history, by_attr[r["parameter"]]).append(report)
+    return history
+
+
+async def fetch_pending_readings(
+    conn: Conn,
+    pond_id: str,
+    meta: Mapping[str, Any],
+    now: datetime,
+    cfg: AnalysisConfig = DEFAULT_CONFIG,
+) -> list:
+    """reading ใหม่: late=false (มติข้อ 12), > cursor, >= analysis_start. เรียงเวลา asc."""
+    rows = await conn.fetch(
+        """
+        select id, measured_at, "DO", "pH", "NH3", "NO2", "temperature", "salinity"
+        from sensor_readings
+        where device_id = $1
+          and late = false
+          and measured_at > coalesce($2::timestamptz, '-infinity'::timestamptz)
+          and measured_at >= $3::timestamptz
+        order by measured_at asc
+        limit 2000
+        """,
+        meta["device_id"],
+        meta["cursor"],
+        meta["analysis_start"],
+    )
+    return list(rows)
+
+
+async def insert_severity_report(conn: Conn, params: Mapping[str, Any]) -> None:
+    """insert แถวเดียว — on conflict do nothing (idempotency §3.4)."""
+    await conn.execute(
+        """
+        insert into severity_reports
+          (pond_id, pond_state_id, parameter, measured_at, value, zone, direction,
+           severity, description, detail, append_des, guidance, engine_version, reading_id)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        on conflict (pond_id, parameter, measured_at) do nothing
+        """,
+        params["pond_id"], params["pond_state_id"], params["parameter"],
+        params["measured_at"], params["value"], params["zone"], params["direction"],
+        params["severity"], params["description"], params["detail"],
+        params["append_des"], params["guidance"], params["engine_version"],
+        params["reading_id"],
+    )
+
+
+async def advance_reading_cursor(conn: Conn, pond_id: str, ts: datetime) -> None:
+    """cursor = reading ล่าสุดที่ประมวลแล้ว — trigger late ใช้ตัดสินผิดลำดับ."""
+    await conn.execute(
+        """
+        update pond_analysis_state set last_reading_at = $2
+        where pond_id = $1
+        """,
+        pond_id, _to_aware(ts),
+    )
+
+
 # ============================ apply_changeset ============================
 
 async def apply_changeset(

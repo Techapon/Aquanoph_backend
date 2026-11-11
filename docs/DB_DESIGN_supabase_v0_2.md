@@ -142,7 +142,7 @@ View/function อ่านอย่างเดียว: `v_pond_cards`, `v_pon
 | `direction` enum null | `low/high` เฉพาะ Range threshold (pH, Temperature) ตอนที่ไม่ Optimal |
 | `severity` enum | `optimal, stress, elevated_risk, critical` |
 | `recovering` | generated: `zone='optimal' and severity='stress'` (Recovery Hold) |
-| `symptom`, `reason`, `guidance` text | ข้อความ English จาก engine ที่แอปแสดงในการ์ด parameter |
+| `description`, `detail`, `append_des`, `guidance` text | 4 fields ของ `SeverityDescriptionModel` ที่แอปแสดงในการ์ด parameter (mapping 1:1, ข้อตกลงทาง A) |
 | `engine_version`, `reading_id` FK null | |
 
 - **unique `(pond_id, parameter, measured_at)`** → รันซ้ำ reading เดิมได้ (`insert ... on conflict do nothing`) ตรงกับ idempotency ของ engine

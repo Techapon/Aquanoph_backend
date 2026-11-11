@@ -6,8 +6,8 @@ from identity.units.severity_units.severity_description.severity_des_set_builder
     build_range_side_severity_des_set,
 )
 from identity.units.severity_units.severity_description.severity_content import (
-    TEMP_HIGH_CONTENT,
-    TEMP_LOW_CONTENT,
+    TEMPERATURE_HIGH_CONTENT,
+    TEMPERATURE_LOW_CONTENT,
 )
 from identity.units.severity_units.severity_description.severity_des_set_model import RangeSeverityDesSet
 from identity.units.severity_units.severity_description.severity_text_template import SeverityTextContext
@@ -32,6 +32,6 @@ def temperature_SeverityDesSet() -> RangeSeverityDesSet:
         abnormal_label="high water temperature",
     )
     return RangeSeverityDesSet(
-        low=build_range_side_severity_des_set(context=low_context, contents=TEMP_LOW_CONTENT),
-        high=build_range_side_severity_des_set(context=high_context, contents=TEMP_HIGH_CONTENT),
+        low=build_range_side_severity_des_set(context=low_context, contents=TEMPERATURE_LOW_CONTENT),
+        high=build_range_side_severity_des_set(context=high_context, contents=TEMPERATURE_HIGH_CONTENT),
     )

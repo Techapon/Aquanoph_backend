@@ -127,12 +127,28 @@ async def _one_job() -> str:
         async with (await pool()).acquire() as conn:
             from identity.analysis.models import Trigger, TriggerKind
             now = _now()
-            snap = await load_snapshot(conn, str(job["pond_id"]), now)
-            versions = {r.id: r.updatedAt for r in snap.recommendations}
             prows = await conn.fetch("select user_id from ponds where id=$1", job["pond_id"])
             user_id = str(prows[0]["user_id"]) if prows else ""
             order = {"activityEvent": 0, "pondEdit": 1, "reading": 2, "tick": 3}
             kinds = sorted(job["kinds"] or ["tick"], key=lambda k: order.get(k, 9))
+
+            # §7 ขั้น 1: severity engine กับ reading ใหม่ ก่อน run_analysis
+            # (ชนิดอื่น sweep ด้วยก็ได้ — ถ้าไม่มี reading ใหม่ query เดียวจบ)
+            from services.severity_runner import sweep_severity
+            try:
+                n = await sweep_severity(conn, str(job["pond_id"]), now)
+                if n:
+                    import logging
+                    logging.getLogger("worker").info(
+                        "severity: %s readings -> severity_reports (pond %s)",
+                        n, str(job["pond_id"])[:8],
+                    )
+            except Exception:  # noqa: BLE001 — severity ล้ม ห้ามทั้ง job
+                import logging
+                logging.getLogger("worker").exception("severity sweep failed")
+
+            snap = await load_snapshot(conn, str(job["pond_id"]), now)
+            versions = {r.id: r.updatedAt for r in snap.recommendations}
             wrote = False
             t_from = job["activity_t_from"]
             for k in kinds:
