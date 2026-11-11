@@ -2,23 +2,30 @@
 
 `appendDes` is runtime-generated time text. Only the evaluator formats these;
 providers must never write appendDes themselves.
+
+Hours/numbers are formatted by the evaluator through MinuteToHours before
+being passed to these templates.
 """
 
-# abnormal_label ที่ evaluator ส่งมา (เช่น "DO ต่ำ", "pH สูง")
-CONTINUOUS = "{label}ต่อเนื่องเกิน {limit_hours} ชม. แล้ว ปัจจุบัน {current_hours} ชม."
+# Continuous time beyond the limit, plus the current accumulated time.
+CONTINUOUS = "{label} has been continuous beyond {limit_hours} h. Now {current_hours} h."
 
-CUMULATIVE = "{label}รวม {current_hours} ชม. ใน 24 ชม. เกินเกณฑ์ {limit_hours} ชม."
+# Cumulative time in 24 h beyond the limit, plus the current accumulated time.
+CUMULATIVE = "{label} totals {current_hours} h in 24 h, beyond the {limit_hours} h limit."
 
-EPISODE = "{label}เกิดซ้ำ {episode_count} ครั้งใน 24 ชม. เกินเกณฑ์ {limit_count} ครั้ง"
+# Repeated high-risk episodes in 24 h.
+EPISODE = "{label} recurred {episode_count} times in 24 h, beyond the {limit_count}-time limit."
 
-RECOVERY = "เกิดเวลาประมาณ {event_time} เหลืออีก {remaining_hours} ชม."
+# Recovery hold after an elevated-risk or critical event.
+RECOVERY = "Event around {event_time}. About {remaining_hours} h remaining."
 
+# Still in a non-exceeded state: warn about the upcoming limit.
 PENDING_STRESS = (
-    "{label}มาแล้ว {current_hours} ชม. "
-    "หากต่อเนื่องจนครบ {limit_hours} ชม. จะอันตรายขึ้น"
+    "{label} for {current_hours} h. "
+    "If it continues to {limit_hours} h, the risk will increase."
 )
 
 PENDING_HIGH_RISK = (
-    "{label}มาแล้ว {current_hours} ชม. "
-    "หากต่อเนื่องจนครบ {limit_hours} ชม. จะอันตรายขึ้นมากกว่าเดิม"
+    "{label} for {current_hours} h. "
+    "If it continues to {limit_hours} h, the risk will increase further."
 )

@@ -13,6 +13,6 @@ def salinity_SeverityDesSet() -> SeverityDesSetModel:
     context = SeverityTextContext(
         parameter_label="salinity",
         direction_label=None,
-        abnormal_label="salinity สูง",
+        abnormal_label="abnormal salinity",
     )
     return build_level_severity_des_set(context=context, contents=SALINITY_CONTENT)

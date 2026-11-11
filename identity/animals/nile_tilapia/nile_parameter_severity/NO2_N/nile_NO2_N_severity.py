@@ -13,6 +13,6 @@ def NO2_N_SeverityDesSet() -> SeverityDesSetModel:
     context = SeverityTextContext(
         parameter_label="NO2-N",
         direction_label=None,
-        abnormal_label="NO2 สูง",
+        abnormal_label="high nitrite",
     )
     return build_level_severity_des_set(context=context, contents=NO2_N_CONTENT)

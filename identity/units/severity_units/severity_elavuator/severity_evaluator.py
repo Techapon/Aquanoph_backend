@@ -3,6 +3,14 @@ from datetime import datetime
 from identity.formats.analysis_report.analysis_report_model import AnalysisReportModel
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_description.severity_des_set_model import AnySeverityDesSet
+from identity.units.severity_units.severity_elavuator.append_text_builder import (
+    CONTINUOUS,
+    CUMULATIVE,
+    EPISODE,
+    PENDING_HIGH_RISK,
+    PENDING_STRESS,
+    RECOVERY,
+)
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import AnyEscalationPolicy
 from identity.units.severity_units.severity_elavuator.severity_helper import (
     ZONE_BY_LEVEL,
@@ -95,7 +103,10 @@ def _evaluateOptimal(
     return SeverityModel(
         severityLevel=SeverityLevelType.Stress,   # แสดงเป็น Stress (Recovery Hold)
         severityDes=base.withAppend(
-            f"เกิดเวลาประมาณ {event.dateTime:%d/%m/%Y %H:%M} เหลืออีก {MinuteToHours(remainingMinute)} ชม."
+            RECOVERY.format(
+                event_time=f"{event.dateTime:%d/%m/%Y %H:%M}",
+                remaining_hours=MinuteToHours(remainingMinute),
+            )
         ),
     )
 
@@ -123,13 +134,15 @@ def _evaluateStressOrHighRisk(
     isContinuousExceeded = metrics.continuousMinute >= limitContinuous
     isCumExceeded = metrics.cumMinute >= limitCum
 
-    continuousText = (
-        f"{label}ต่อเนื่องเกิน {MinuteToHours(limitContinuous)} ชม. แล้ว "
-        f"ปัจจุบัน {MinuteToHours(metrics.continuousMinute)} ชม."
+    continuousText = CONTINUOUS.format(
+        label=label,
+        limit_hours=MinuteToHours(limitContinuous),
+        current_hours=MinuteToHours(metrics.continuousMinute),
     )
-    cumText = (
-        f"{label}สะสมเกิน {MinuteToHours(limitCum)} ชม. ใน 24 ชม. แล้ว "
-        f"ปัจจุบันสะสม {MinuteToHours(metrics.cumMinute)} ชม."
+    cumText = CUMULATIVE.format(
+        label=label,
+        current_hours=MinuteToHours(metrics.cumMinute),
+        limit_hours=MinuteToHours(limitCum),
     )
 
     # STRESS CASE
@@ -147,8 +160,11 @@ def _evaluateStressOrHighRisk(
         return SeverityModel(
             severityLevel=SeverityLevelType.Stress,
             severityDes=des.pureStress.withAppend(
-                f"{label}มาแล้ว {MinuteToHours(metrics.continuousMinute)} ชม. "
-                f"หากต่อเนื่องจนครบ {MinuteToHours(limitContinuous)} ชม. จะอันตรายขึ้น"
+                PENDING_STRESS.format(
+                    label=label,
+                    current_hours=MinuteToHours(metrics.continuousMinute),
+                    limit_hours=MinuteToHours(limitContinuous),
+                )
             ),
         )
 
@@ -172,14 +188,20 @@ def _evaluateStressOrHighRisk(
         return SeverityModel(
             severityLevel=SeverityLevelType.Critical,
             severityDes=des.episodeExceeded.withAppend(
-                f"{label}เข้าโซนเสี่ยงสูงซ้ำ {episodeCount} ครั้งใน 24 ชม. "
-                f"(เกณฑ์ {pol.recurrenceEpisode24H} ครั้ง)"
+                EPISODE.format(
+                    label=label,
+                    episode_count=episodeCount,
+                    limit_count=pol.recurrenceEpisode24H,
+                )
             ),
         )
     return SeverityModel(
         severityLevel=SeverityLevelType.ElevatedRisk,
         severityDes=des.pureHighRisk.withAppend(
-            f"{label}มาแล้ว {MinuteToHours(metrics.continuousMinute)} ชม. "
-            f"หากต่อเนื่องจนครบ {MinuteToHours(limitContinuous)} ชม. จะอันตรายขึ้นมากกว่าเดิม"
+            PENDING_HIGH_RISK.format(
+                label=label,
+                current_hours=MinuteToHours(metrics.continuousMinute),
+                limit_hours=MinuteToHours(limitContinuous),
+            )
         ),
     )

@@ -13,6 +13,6 @@ def DO_SeverityDesSet() -> SeverityDesSetModel:
     context = SeverityTextContext(
         parameter_label="DO",
         direction_label=None,
-        abnormal_label="DO ต่ำ",
+        abnormal_label="low DO",
     )
     return build_level_severity_des_set(context=context, contents=DO_CONTENT)

@@ -22,14 +22,14 @@ def temperature_EscalationPolicy() -> RangeEscalationPolicy:
 
 def temperature_SeverityDesSet() -> RangeSeverityDesSet:
     low_context = SeverityTextContext(
-        parameter_label="อุณหภูมิน้ำ",
-        direction_label="ต่ำ",
-        abnormal_label="อุณหภูมิต่ำ",
+        parameter_label="Water temperature",
+        direction_label="low",
+        abnormal_label="low water temperature",
     )
     high_context = SeverityTextContext(
-        parameter_label="อุณหภูมิน้ำ",
-        direction_label="สูง",
-        abnormal_label="อุณหภูมิสูง",
+        parameter_label="Water temperature",
+        direction_label="high",
+        abnormal_label="high water temperature",
     )
     return RangeSeverityDesSet(
         low=build_range_side_severity_des_set(context=low_context, contents=TEMP_LOW_CONTENT),

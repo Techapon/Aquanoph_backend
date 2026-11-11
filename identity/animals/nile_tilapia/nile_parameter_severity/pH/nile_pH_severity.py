@@ -23,13 +23,13 @@ def pH_EscalationPolicy() -> RangeEscalationPolicy:
 def pH_SeverityDesSet() -> RangeSeverityDesSet:
     low_context = SeverityTextContext(
         parameter_label="pH",
-        direction_label="ต่ำ",
-        abnormal_label="pH ต่ำ",
+        direction_label="low",
+        abnormal_label="low pH",
     )
     high_context = SeverityTextContext(
         parameter_label="pH",
-        direction_label="สูง",
-        abnormal_label="pH สูง",
+        direction_label="high",
+        abnormal_label="high pH",
     )
     return RangeSeverityDesSet(
         low=build_range_side_severity_des_set(context=low_context, contents=PH_LOW_CONTENT),

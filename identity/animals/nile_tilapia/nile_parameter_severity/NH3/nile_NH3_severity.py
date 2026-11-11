@@ -13,6 +13,6 @@ def NH3_SeverityDesSet() -> SeverityDesSetModel:
     context = SeverityTextContext(
         parameter_label="NH3",
         direction_label=None,
-        abnormal_label="NH3 สูง",
+        abnormal_label="high NH3",
     )
     return build_level_severity_des_set(context=context, contents=NH3_CONTENT)
