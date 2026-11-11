@@ -416,11 +416,12 @@ async def apply_changeset(
                 EM.SEVERITY_TO_DB[d.peakSeverity], EM.SEVERITY_TO_DB[d.lastSeverity],
                 _causes_json(d), d.noClearCause, _snapshot_json(d.pondSnapshot),
                 now_aw,
-                {"title": text.title,
-                 "causes": [{"heading": c.heading, "body": c.body} for c in text.causes],
-                 "fallback": text.fallback,
-                 "footer": text.footer,
-                 "revisedLabel": text.revisedLabel},
+                # asyncpg jsonb codec รับ str — ส่ง dict ตรง = "expected str, got dict"
+                _json({"title": text.title,
+                       "causes": [{"heading": c.heading, "body": c.body} for c in text.causes],
+                       "fallback": text.fallback,
+                       "footer": text.footer,
+                       "revisedLabel": text.revisedLabel}),
             )
 
         # --- 2. predictions ---
@@ -444,7 +445,7 @@ async def apply_changeset(
                 p.endReason,
                 _json(p.evidence), _snapshot_json(p.pondSnapshot),
                 now_aw,
-                {"headline": getattr(rendered, "headline", str(rendered))},
+                _json({"headline": getattr(rendered, "headline", str(rendered))}),
             )
 
         # --- 3. recommendations: for update + StaleSnapshot check ก่อนทุกใบ ---
