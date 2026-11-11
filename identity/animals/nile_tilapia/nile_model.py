@@ -11,9 +11,7 @@ from identity.animals.nile_tilapia.nile_parameter_threshold.NH3.nile_NH3_thresho
 from identity.animals.nile_tilapia.nile_parameter_threshold.pH.nile_pH_threshold import pH_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.salinity.nile_salinity_threshold import salinity_threshold
 from identity.animals.nile_tilapia.nile_parameter_threshold.tempearture.nile_tem_threshold import tem_threshold
-from identity.parameters.pond_parameter_enum import PondParameters
-from identity.units.threshold_units.threshold.threshold_type_level_enum import LevelType
-from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold, Threshold
+from identity.units.threshold_units.threshold.threshold_model import LevelThreshold, RangeThreshold
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import EscalationPolicy
 from identity.units.severity_units.severity_description.severity_des_set_model import SeverityDesSetModel
 from identity.units.severity_units.severity_elavuator.severity_escalation_policy import (
@@ -37,7 +35,7 @@ class NileTilapiaModel(AquaticAnimal):
     # pH
     def pHThreshold(self) -> RangeThreshold:
         return pH_threshold(self)
-    
+
     # Temerapure
     def temThreshold(self) -> RangeThreshold:
         return tem_threshold(self)
@@ -57,7 +55,7 @@ class NileTilapiaModel(AquaticAnimal):
     # ----------
     # Escalation Policy
     # ----------
-    
+
     # DO
     def DOEscalationPolicy(self) -> EscalationPolicy:
         return DO_EscalationPolicy()
@@ -65,7 +63,7 @@ class NileTilapiaModel(AquaticAnimal):
     # pH
     def pHEscalationPolicy(self) -> RangeEscalationPolicy:
         return pH_EscalationPolicy()
-    
+
     # Temerapure
     def temEscalationPolicy(self) -> RangeEscalationPolicy:
         return temperature_EscalationPolicy()
