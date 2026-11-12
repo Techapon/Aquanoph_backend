@@ -11,3 +11,6 @@
 # Python cache
 __pycache__/
 *.py[cod]
+
+# local docs
+docs/
