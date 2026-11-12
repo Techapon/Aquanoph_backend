@@ -26,10 +26,13 @@ class SeverityTextTemplate:
         severity_state: str,
     ) -> str:
         # Examples:
-        #   DO      + None + "is slightly outside the suitable range"
-        #           -> "DO is slightly outside the suitable range"
-        #   pH      + "low" + "is slightly outside the suitable range"
-        #           -> "pH low is slightly outside the suitable range"
+        #   DO + None + "is slightly outside the suitable range"
+        #       -> "DO is slightly outside the suitable range"
+        #   pH + "low" + "is slightly outside the suitable range"
+        #       -> "pH is low, slightly outside the suitable range"
         if direction_label:
-            return f"{parameter_label} {direction_label} {severity_state}"
+            # Drop a leading "is " from state so "pH is low" is not followed by a second "is".
+            state = severity_state.removeprefix("is ").removeprefix("has ")
+            state = state[0].lower() + state[1:] if state else state
+            return f"{parameter_label} is {direction_label}, {state}"
         return f"{parameter_label} {severity_state}"
