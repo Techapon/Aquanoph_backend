@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import asyncpg
 from fastapi import Depends, FastAPI, Header, HTTPException
 
-from db.adapter import StaleSnapshot, apply_changeset, load_snapshot
+from db.adapter import StaleSnapshot, _to_naive, apply_changeset, load_snapshot
 from services.run_analysis import run_analysis
 
 import logging
@@ -155,7 +155,9 @@ async def _one_job() -> str:
             snap = await load_snapshot(conn, str(job["pond_id"]), now)
             versions = {r.id: r.updatedAt for r in snap.recommendations}
             wrote = False
-            t_from = job["activity_t_from"]
+            # activity_t_from เป็น timestamptz -> asyncpg คืน aware; engine ใช้ naive UTC
+            # (ไม่งั้น runner.py เทียบ onsetAt >= tFrom = "offset-naive vs offset-aware")
+            t_from = _to_naive(job["activity_t_from"])
             for k in kinds:
                 trig = Trigger(kind=TriggerKind(k), tFrom=t_from)
                 cs = run_analysis(snap, trig, now)
