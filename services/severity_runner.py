@@ -16,6 +16,12 @@ from identity.parameters.pond_parameter_model import (
     PondParametersDeliveryModel,
     PondParametersModel,
 )
+from identity.units.threshold_units.threshold.threshold_model import (
+    LevelThreshold,
+    RangeThreshold,
+    Threshold,
+)
+from identity.units.threshold_units.threshold.value_range import Range, RangeType
 
 ENGINE_VERSION = "nile-1"
 
@@ -53,6 +59,43 @@ def compute_reports(
     return tuple(getattr(model, attr).buildAnalysisReport() for attr in _PARAM_ATTRS)
 
 
+def _bound(value: float | Range) -> float | dict | None:
+    """Range/float → json-safe: Range → {min,max}, RangeType (เปิดด้าน) → null"""
+    if isinstance(value, Range):
+        return {"min": _bound(value.min), "max": _bound(value.max)}  # type: ignore[arg-type]
+    if isinstance(value, RangeType):
+        return None
+    return float(value)  # type: ignore[arg-type]
+
+
+def threshold_json(threshold: Threshold | None) -> dict | None:
+    """Threshold ที่ใช้ตัดสิน ณ reading นี้ → jsonb สำหรับ severity_reports.threshold.
+
+    Level: {"kind":"level","levelType":"eqaMoreThan|eqaLessThan","optimal","stress","highRisk","critical"}
+    Range: {"kind":"range","optimal":{"min","max"},"stress":{...},"highRisk":{...},"critical":{...}}
+    """
+    if threshold is None:
+        return None
+    if isinstance(threshold, RangeThreshold):
+        return {
+            "kind": "range",
+            "optimal": _bound(threshold.optimal),
+            "stress": _bound(threshold.stress),
+            "highRisk": _bound(threshold.highRisk),
+            "critical": _bound(threshold.critical),
+        }
+    if isinstance(threshold, LevelThreshold):
+        return {
+            "kind": "level",
+            "levelType": threshold.levelType.name,
+            "optimal": _bound(threshold.optimal),  # type: ignore[arg-type]
+            "stress": _bound(threshold.stress),  # type: ignore[arg-type]
+            "highRisk": _bound(threshold.highRisk),  # type: ignore[arg-type]
+            "critical": _bound(threshold.critical),  # type: ignore[arg-type]
+        }
+    return None
+
+
 def report_params(
     *,
     pond_id: str,
@@ -84,6 +127,7 @@ def report_params(
         "guidance": desc.guidance,
         "engine_version": ENGINE_VERSION,
         "reading_id": reading_id,
+        "threshold": threshold_json(report.threshold),
     }
 
 

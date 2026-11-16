@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from datetime import datetime
+
+from typing import TYPE_CHECKING
 
 from identity.parameters.pond_parameter_enum import PondParameters
 from identity.units.severity_units.severity.severity_model import SeverityModel
 from identity.units.severity_units.severity_level.severity_level_enum import SeverityLevelType
 from identity.units.threshold_units.threshold_level.threshold_level import ThresholdLevelType
 from identity.units.threshold_units.threshold_level.threshold_direction import ThresholdDirection
+
+if TYPE_CHECKING:
+    from identity.units.threshold_units.threshold.threshold_model import Threshold
 
 class AnalysisReportModel:
     dateTime : datetime
@@ -13,6 +20,7 @@ class AnalysisReportModel:
     thresholdDirection : ThresholdDirection | None
     severity: SeverityModel
     value: float | None
+    threshold: Threshold | None
 
     def __init__(
         self,
@@ -22,7 +30,8 @@ class AnalysisReportModel:
         thresholdStatus : ThresholdLevelType,
         severity : SeverityModel,
         thresholdDirection : ThresholdDirection | None = None,
-        value : float | None = None
+        value : float | None = None,
+        threshold : Threshold | None = None
     ):
         self.dateTime = dateTime
         self.parameter = parameter
@@ -30,6 +39,7 @@ class AnalysisReportModel:
         self.thresholdDirection = thresholdDirection
         self.severity = severity
         self.value = value
+        self.threshold = threshold
 
     @property
     def severityStatus(self) -> SeverityLevelType:

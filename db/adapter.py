@@ -348,8 +348,9 @@ async def insert_severity_report(conn: Conn, params: Mapping[str, Any]) -> None:
         """
         insert into severity_reports
           (pond_id, pond_state_id, parameter, measured_at, value, zone, direction,
-           severity, description, detail, append_des, guidance, engine_version, reading_id)
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+           severity, description, detail, append_des, guidance, engine_version, reading_id,
+           threshold)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
         on conflict (pond_id, parameter, measured_at) do nothing
         """,
         params["pond_id"], params["pond_state_id"], params["parameter"],
@@ -357,6 +358,7 @@ async def insert_severity_report(conn: Conn, params: Mapping[str, Any]) -> None:
         params["severity"], params["description"], params["detail"],
         params["append_des"], params["guidance"], params["engine_version"],
         params["reading_id"],
+        _json(params["threshold"]) if params.get("threshold") is not None else None,
     )
 
 

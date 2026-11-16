@@ -1,4 +1,5 @@
 """Severity runner unit tests (pure — ไม่แตะ DB)."""
+import json
 from datetime import datetime
 
 import pytest
@@ -64,6 +65,42 @@ def test_report_params_maps_enums_and_fields():
     assert p["engine_version"] == ENGINE_VERSION
     assert p["reading_id"] == 42
     assert p["pond_id"] == "p1" and p["pond_state_id"] == "s1"
+
+
+def test_report_params_threshold_level_snapshot():
+    reports = compute_reports(
+        values=VALUES, history=PondParametersHistoryModel(), now=NOW,
+        weight_g=400.0, density_kg_m3=2.67,
+    )
+    r = next(x for x in reports if x.parameter == PondParameters.DO)
+    th = report_params(pond_id="p1", pond_state_id="s1", reading_id=42, report=r)["threshold"]
+    assert th is not None and th["kind"] == "level"
+    assert th["levelType"] in ("eqaMoreThan", "eqaLessThan")
+    # DO = eqaMoreThan: optimal >= stress >= highRisk
+    assert th["optimal"] >= th["stress"] >= th["highRisk"]
+
+
+def test_report_params_threshold_range_snapshot():
+    reports = compute_reports(
+        values=VALUES, history=PondParametersHistoryModel(), now=NOW,
+        weight_g=400.0, density_kg_m3=2.67,
+    )
+    r = next(x for x in reports if x.parameter == PondParameters.tem)
+    th = report_params(pond_id="p1", pond_state_id="s1", reading_id=42, report=r)["threshold"]
+    assert th is not None and th["kind"] == "range"
+    assert th["optimal"]["min"] < th["optimal"]["max"]
+    # temperature critical = RangeType.noMin/noMax → ขอบเปิด = null
+    assert th["critical"]["min"] is None and th["critical"]["max"] is None
+
+
+def test_report_params_threshold_is_json_serializable():
+    reports = compute_reports(
+        values=VALUES, history=PondParametersHistoryModel(), now=NOW,
+        weight_g=400.0, density_kg_m3=2.67,
+    )
+    for r in reports:
+        p = report_params(pond_id="p1", pond_state_id="s1", reading_id=42, report=r)
+        assert json.dumps(p, default=str), f"threshold serialize ไม่ได้: {r.parameter}"
 
 
 def test_append_history_targets_right_field():
