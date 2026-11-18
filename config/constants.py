@@ -57,6 +57,17 @@ class AnalysisConfig:
     wcLookbackHours: int = 48
     wcLookaheadHours: int = 24
 
+    # forecast (kNN over similar past local days)
+    forecastWindowDays: int = 14
+    forecastMinDays: int = 5
+    forecastCoverage: float = 0.70
+    forecastK: int = 5
+    forecastHorizonHours: int = 12
+    forecastStepMinutes: int = 30
+    forecastRecencyHalfLifeDays: float = 7.0
+    forecastWeightActivity: float = 0.5
+    forecastMinNeighbors: int = 2
+
     # recommendation
     aerateLeadHours: int = 1
     aerateDeadlineAfterRiskStartHours: int = 1
@@ -93,6 +104,8 @@ class AnalysisConfig:
             "feedLookbackPredHours", "feedLookaheadPredHours", "riskStartAfterMealHours",
             "tempHighLookbackPredHours", "repeatMinNights", "repeatWindowNights",
             "nh3RiseHorizonHours", "wcLookbackHours", "wcLookaheadHours",
+            "forecastWindowDays", "forecastMinDays", "forecastK",
+            "forecastHorizonHours", "forecastStepMinutes", "forecastMinNeighbors",
             "aerateLeadHours", "aerateDeadlineAfterRiskStartHours",
             "aerateDiagDeadlineHours", "aerateDiagDurationHours", "wcUrgentDeadlineHours",
             "alkalinityWindowDays", "minAerationSegmentMinutes"
@@ -109,6 +122,19 @@ class AnalysisConfig:
 
         if self.staleFactor < 1.0:
             raise ValueError(f"staleFactor must be >= 1.0, got {self.staleFactor}")
+
+        if not (0.0 < self.forecastCoverage <= 1.0):
+            raise ValueError(f"forecastCoverage must be in (0, 1], got {self.forecastCoverage}")
+
+        if not (0.0 <= self.forecastWeightActivity <= 1.0):
+            raise ValueError(
+                f"forecastWeightActivity must be in [0, 1], got {self.forecastWeightActivity}"
+            )
+
+        if self.forecastRecencyHalfLifeDays <= 0.0:
+            raise ValueError(
+                f"forecastRecencyHalfLifeDays must be positive, got {self.forecastRecencyHalfLifeDays}"
+            )
 
         if not (0.0 <= self.phSwingCoverage <= 1.0):
             raise ValueError(f"phSwingCoverage must be in 0..1, got {self.phSwingCoverage}")

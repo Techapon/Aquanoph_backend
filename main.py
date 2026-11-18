@@ -178,6 +178,20 @@ async def _one_job() -> str:
                     conn, str(job["pond_id"]), ChangeSet(), versions, now,
                     snap.pond.timezone, user_id, job["id"], engine_version="v1",
                 )
+
+            # §13: kNN forecast 6 parameter × horizon — เขียนทับ parameter_forecasts
+            try:
+                from services.forecast_runner import sweep_forecasts
+                n_fc = await sweep_forecasts(conn, str(job["pond_id"]), now)
+                if n_fc:
+                    import logging
+                    logging.getLogger("worker").info(
+                        "forecast: %s parameters (pond %s)",
+                        n_fc, str(job["pond_id"])[:8],
+                    )
+            except Exception:  # noqa: BLE001 — forecast ล้ม ห้ามทั้ง job
+                import logging
+                logging.getLogger("worker").exception("forecast sweep failed")
         return "done"
     except StaleSnapshot:
         async with (await pool()).acquire() as conn:

@@ -1,6 +1,6 @@
 # คู่มือ Backend สำหรับ Flutter Frontend
 
-> อ่านจากโค้ดจริงทั้งหมด (migration 001–012, `db/adapter.py`, `identity/**`, `main.py`) — ใช้แทน
+> อ่านจากโค้ดจริงทั้งหมด (migration 001–013, `db/adapter.py`, `identity/**`, `main.py`) — ใช้แทน
 > `APPLY_FROM_FONTEND_LOGIC.md` ที่มีข้อผิดพลาดบางจุด (แก้ให้แล้วใน §1.1)
 
 ---

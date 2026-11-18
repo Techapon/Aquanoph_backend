@@ -73,6 +73,17 @@ def test_config_is_frozen():
     ("wcNonUrgentFraction", 1.5),
     ("alkalinityWindowDays", 0),
     ("minAerationSegmentMinutes", 0),
+    ("forecastWindowDays", 0),
+    ("forecastMinDays", 0),
+    ("forecastK", 0),
+    ("forecastHorizonHours", 0),
+    ("forecastStepMinutes", 0),
+    ("forecastMinNeighbors", 0),
+    ("forecastCoverage", 0.0),
+    ("forecastCoverage", 1.5),
+    ("forecastWeightActivity", -0.1),
+    ("forecastWeightActivity", 1.5),
+    ("forecastRecencyHalfLifeDays", 0.0),
 ])
 def test_config_validation_rejects_bad_values(invalidField, value):
     with pytest.raises(ValueError):

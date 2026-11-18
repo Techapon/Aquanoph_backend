@@ -373,6 +373,142 @@ async def advance_reading_cursor(conn: Conn, pond_id: str, ts: datetime) -> None
     )
 
 
+# ============================ forecast (§13) ============================
+
+_SENSOR_COLUMNS = (
+    ("DO", PondParameters.DO),
+    ("pH", PondParameters.pH),
+    ("NH3", PondParameters.NH3),
+    ("NO2", PondParameters.NO2_N),
+    ("temperature", PondParameters.tem),
+    ("salinity", PondParameters.salinity),
+)
+
+
+async def load_forecast_inputs(
+    conn: Conn,
+    pond_id: str,
+    now: datetime,
+    cfg: AnalysisConfig = DEFAULT_CONFIG,
+) -> tuple[PondInfo, tuple, tuple[Activity, ...]]:
+    """(pond, readings, done activities) ใน forecastWindowDays → วัตถุดิบของ kNN."""
+    from identity.forecast.series import Reading
+
+    now_aw = _to_aware(now)
+    window_from = now_aw - timedelta(days=cfg.forecastWindowDays)
+
+    prow = await conn.fetchrow(
+        """
+        select p.id, p.avg_weight_g, p.stocking_count, p.biomass_kg, p.timezone, p.device_id,
+               s.avg_weight_g as sw, s.fish_count as sc
+        from ponds p
+        left join pond_states s on s.id = (
+          select id from pond_states where pond_id = p.id order by effective_from desc limit 1
+        )
+        where p.id = $1
+        """,
+        pond_id,
+    )
+    if prow is None:
+        raise ValueError(f"pond not found: {pond_id}")
+    pond = PondInfo(
+        pondId=str(prow["id"]),
+        timezone=prow["timezone"],
+        biomassKg=float(prow["biomass_kg"]),
+        avgWeightG=float(prow["sw"] if prow["sw"] is not None else prow["avg_weight_g"]),
+        fishCount=int(prow["sc"] if prow["sc"] is not None else prow["stocking_count"]),
+    )
+
+    reading_rows = await conn.fetch(
+        """
+        select measured_at, "DO", "pH", "NH3", "NO2", "temperature", "salinity"
+        from sensor_readings
+        where device_id = $1
+          and measured_at >= $2
+          and measured_at <= $3
+        order by measured_at asc
+        """,
+        prow["device_id"],
+        window_from,
+        now_aw,
+    )
+    readings = tuple(
+        Reading(
+            time=_req_naive(r["measured_at"], "sensor_readings.measured_at"),
+            values={
+                param: (float(r[col]) if r[col] is not None else None)
+                for col, param in _SENSOR_COLUMNS
+            },
+        )
+        for r in reading_rows
+    )
+
+    act_rows = await conn.fetch(
+        """
+        select id, pond_id, type, status, start_time, end_time,
+               quantity_kg, fraction, source, source_rec_id, created_at, updated_at
+        from activities
+        where pond_id = $1
+          and status = 'done'
+          and start_time >= $2
+          and start_time <= $3
+        order by start_time asc
+        """,
+        pond_id,
+        window_from,
+        now_aw,
+    )
+    activities = tuple(_row_to_activity(r) for r in act_rows)
+    return pond, readings, activities
+
+
+async def upsert_forecasts(conn: Conn, pond_id: str, forecasts: Sequence) -> None:
+    """เขียนทับ per (pond, parameter) — 1 แถวล่าสุดต่อ parameter (§13)."""
+    for fc in forecasts:
+        await conn.execute(
+            """
+            insert into parameter_forecasts
+              (pond_id, parameter, generated_at, model, horizon_hours, points, neighbors)
+            values ($1,$2,$3,$4,$5,$6,$7)
+            on conflict (pond_id, parameter) do update set
+              generated_at = excluded.generated_at,
+              model = excluded.model,
+              horizon_hours = excluded.horizon_hours,
+              points = excluded.points,
+              neighbors = excluded.neighbors
+            """,
+            pond_id,
+            EM.PARAMETER_TO_DB[fc.parameter],
+            _to_aware(fc.generatedAt),
+            fc.model,
+            fc.horizonHours,
+            _points_json(fc.points),
+            _neighbors_json(fc.neighbors),
+        )
+
+
+def _points_json(points: Sequence) -> str:
+    import json
+    return json.dumps([
+        {
+            "t": _to_aware(p.time).isoformat(),
+            "v": None if p.value is None else round(p.value, 3),
+            "p25": None if p.low is None else round(p.low, 3),
+            "p75": None if p.high is None else round(p.high, 3),
+            "n": p.count,
+        }
+        for p in points
+    ])
+
+
+def _neighbors_json(neighbors: Sequence) -> str:
+    import json
+    return json.dumps([
+        {"date": day.isoformat(), "distance": round(distance, 4)}
+        for day, distance in neighbors
+    ])
+
+
 # ============================ apply_changeset ============================
 
 async def apply_changeset(

@@ -28,12 +28,13 @@ profiles (1 user = auth user)
   │   │   activity created by apply โยงผ่าน source_rec_id
   │   ├─< activities              กิจกรรมบ่อ (checklist) ──< activity_series (repeat 7 วัน)
   │   ├─< notifications           outbox แจ้งเตือน (push/feed)
+  │   ├─< parameter_forecasts    พยากรณ์ค่า kNN ล่วงหน้า (1 แถวต่อ parameter, เขียนทับทุก run)
   │   └─< analysis_jobs/runs      งานวิเคราะห์ที่ trigger สร้าง (backend worker ทำ)
   └─< push_tokens                 device tokens สำหรับ push
 ```
 
 **อ่านตาม flow:**
-reading เข้า `sensor_readings` → enqueue job → backend โหลด snapshot → คำนวณ → สร้าง `severity_reports` + `diagnostic_reports` + `predictions` + `recommendations` + `notifications` ลง DB ผ่าน ChangeSet → app subscribe realtime อ่านผล
+reading เข้า `sensor_readings` → enqueue job → backend โหลด snapshot → คำนวณ → สร้าง `severity_reports` + `diagnostic_reports` + `predictions` + `recommendations` + `notifications` + `parameter_forecasts` ลง DB ผ่าน ChangeSet/adapter → app subscribe realtime อ่านผล
 
 ---
 
@@ -347,6 +348,23 @@ reading เข้า `sensor_readings` → enqueue job → backend โหลด 
 
 ---
 
+### 2.17 `parameter_forecasts` — พยากรณ์ค่า parameter ล่วงหน้า (kNN)
+
+| column | ความหมาย / หน้าที่ |
+|---|---|
+| `pond_id` + `parameter` | **PK** — 1 แถวต่อ parameter ต่อบ่อ (อัปเดตทับทุก analysis run) |
+| `generated_at` | เวลาที่สร้างชุดพยากรณ์ล่าสุด — เก่ากว่า 90 นาที = กราฟเทา/ไม่สด |
+| `model` | เวอร์ชันโมเดล (`knn_v1`) |
+| `horizon_hours` | ล่วงหน้ากี่ชั่วโมง (ปัจจุบัน 12) |
+| `points` | jsonb array เรียงเวลา: `[{t, v, p25, p75, n}]` — `t` = เวลา ISO (UTC), `v` = ค่ากลาง (median ถ่วงน้ำหนัก) หรือ **null** (เพื่อนบ้านมีข้อมูลไม่พอ), `p25`/`p75` = ช่วงความเชื่อมั่น, `n` = จำนวนเพื่อนบ้านที่มีข้อมูล ณ จุดนั้น · จุดทุก 30 นาที (24 จุด สำหรับ 12 ชม.) |
+| `neighbors` | jsonb `[{date, distance}]` — วันที่ในอดีตที่ถูกใช้เป็นเพื่อนบ้าน (debug/อธิบายผล) |
+
+**ความหมาย:** กราฟ **Predictive** ของหน้า Full Analysis — เอาวันในอดีตที่ "คล้ายวันนี้" (activity + สภาพน้ำช่วงที่ผ่านมา) มาเฉลี่ยค่าที่ **เวลาเดียวกันของวัน** เป็นเส้นอนาคต. ไม่มีแถว = ข้อมูลอดีตไม่ถึงเกณฑ์ (`< 5 วัน`) → app แสดง "Not enough data"
+
+**ความสัมพันธ์:** `pond_id` FK ponds; app อ่านผ่าน RLS (เจ้าของบ่อ) — backend เป็นผู้เขียนเท่านั้น (upsert ทุก job)
+
+---
+
 ## 3. Backend Flow (input/output ที่ app ควรรู้)
 
 ### 3.1 Input: PondSnapshot
@@ -428,6 +446,7 @@ Adapter persist ChangeSet ทั้งหมดใน 1 transaction (upsert by i
 |---|---|---|
 | การ์ด parameter + severity text | `severity_reports` (SELECT, เรียง measured_at DESC) | columns: value/zone/severity/recovering/description/detail/append_des/guidance |
 | Full Analysis (กราฟ + threshold ณ เวลานั้น) | `severity_reports` (SELECT ตามช่วงเวลา) | เพิ่ม `threshold` jsonb = ค่า threshold ที่ใช้จริงตอนนั้น (ดู §2.7) — ใช้วาดเส้น Optimal/Stress สีโซนย้อนหลังได้ตรงกับที่ engine ตัดสิน |
+| Full Analysis (กราฟอนาคต) | `parameter_forecasts` (SELECT + Realtime) | `points` jsonb = เส้นพยากรณ์ + band; ไม่มีแถว = "Not enough data" (ดู §2.17) |
 | "Why" / diagnostic | `diagnostic_reports` (SELECT) | text cache `text` jsonb → render ไม่ต้องทำเอง |
 | Prediction | `predictions` (SELECT) | `text` jsonb + status/evidence |
 | Recommendation list | `recommendations` (SELECT) | เรียง urgency + valid_until; `recommendation_sources` ถ้าอยากรู้แหล่งที่มา |
